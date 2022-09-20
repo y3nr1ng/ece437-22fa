@@ -19,11 +19,15 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
-module traffic(
-    input        button,
+module traffic #(
+    parameter green_delay = 1000,
+    parameter yellow_delay = 500,
+    parameter pedestrian_delay = 1000
+)(
+    input       button,
     output [7:0] led,
-    input sys_clkn,
-    input sys_clkp  
+    input       sys_clkn,
+    input       sys_clkp  
 ); 
                 
     wire clk;
@@ -44,9 +48,9 @@ module traffic(
     
     always @(posedge clk) begin
         clk_acc <= clk_acc + 1'b1;
-        // 200 MHz / 100_000 = 2 kHz
+        // 100 MHz / 50_000 = 2 kHz
         // 2 kHz / 2 = 1 kHz
-        if (clk_acc >= 100_000) begin
+        if (clk_acc >= 50_000) begin
             fsm_clk <= ~fsm_clk;
             clk_acc <= 0;
         end
@@ -61,7 +65,29 @@ module traffic(
     // map led wire to output, inverted
     assign led = ~{ns_light, ew_light, pedestrian_light};
     /*** led output ***/
-        
+    
+    /*** pedestrian ***/
+    reg         pedestrian_waiting;
+    reg         pedestrian_crossing;
+    
+    initial begin
+        pedestrian_waiting <= 0;
+        pedestrian_crossing <= 0;
+    end      
+    
+    wire p_r_light, p_g_light;
+    assign pedestrian_light = { p_r_light, p_g_light };
+    assign p_r_light = ~p_g_light;
+    assign p_g_light = pedestrian_crossing;
+    
+    always @(posedge button or posedge pedestrian_crossing) begin
+        if (button) 
+            pedestrian_waiting <= 1;
+        else if (pedestrian_crossing) 
+            pedestrian_waiting <= 0;
+    end
+    /*** pedestrian ***/
+    
     /*** car ***/
     localparam CAR_STATE_WAIT_PEDESTRIAN = 3'd0;
     localparam CAR_STATE_G       = 3'd1;
@@ -71,10 +97,6 @@ module traffic(
     
     localparam DIRECTION_NS = 0;
     localparam DIRECTION_EW = 1;
-    
-    localparam G_DELAY = 100;  // 1s
-    localparam Y_DELAY = 50;   // 0.5s
-    localparam R_DELAY = 200;  // 1.5s
     
     reg [2:0]   car_state;
     reg         car_passing;
@@ -110,7 +132,7 @@ module traffic(
         case (car_state)
             CAR_STATE_G: begin
                 car_state <= CAR_STATE_G_WAIT;
-                car_wait_counter <= G_DELAY;
+                car_wait_counter <= green_delay;
                 
                 car_passing <= 1;
             end
@@ -126,7 +148,7 @@ module traffic(
                 
             CAR_STATE_Y: begin
                 car_state <= CAR_STATE_Y_WAIT;
-                car_wait_counter <= Y_DELAY;
+                car_wait_counter <= yellow_delay;
                 
                 car_passing <= 1;
             end
@@ -138,6 +160,10 @@ module traffic(
                 else begin
                     if (pedestrian_waiting) begin
                         car_state <= CAR_STATE_WAIT_PEDESTRIAN;
+                        car_wait_counter <= pedestrian_delay;
+                        
+                        // no car passing
+                        car_passing <= 0;
                     end
                     else begin
                         car_state <= CAR_STATE_G;
@@ -149,64 +175,20 @@ module traffic(
             end
             
             CAR_STATE_WAIT_PEDESTRIAN: begin
-                // no car passing at this state
-                car_passing <= 0;
+                pedestrian_crossing <= 1;
                 
-                if (!pedestrian_waiting) begin
-                    // pedestrian move away, resume transition
+                if (car_wait_counter > 0) begin
+                    car_wait_counter <= car_wait_counter - 1;
+                end
+                else begin
+                    // resume transition
                     car_state <= CAR_STATE_G;
+                    pedestrian_crossing <= 0;
                 end
             end
         endcase
     end
     /*** car ***/
-    
-    /*** pedestrian ***/
-    localparam PEDESTRIAN_STATE_R           = 2'd0;
-    localparam PEDESTRIAN_STATE_WAIT_CAR    = 2'd1;
-    localparam PEDESTRIAN_STATE_G           = 2'd2;
-    localparam PEDESTRIAN_STATE_G_WAIT      = 2'd3;
-    
-    reg [1:0]   pedestrian_state;
-    reg         pedestrian_waiting;
-    reg [15:0]  pedestrian_wait_counter;
-    
-    initial begin
-        pedestrian_state <= PEDESTRIAN_STATE_R;
-        pedestrian_waiting <= 0;
-        pedestrian_wait_counter <= 0;
-    end      
-    
-    localparam P_DELAY = 100; // 1s
-    
-    always @(posedge fsm_clk) begin
-        case (pedestrian_state)
-            PEDESTRIAN_STATE_R: begin 
-                pedestrian_waiting <= button;
-            end
-            
-            PEDESTRIAN_STATE_WAIT_CAR: begin 
-                pedestrian_waiting <= 1;
-                if (!car_passing) begin
-                    pedestrian_state <= PEDESTRIAN_STATE_G;
-                end
-            end
-            
-            PEDESTRIAN_STATE_G: begin 
-                pedestrian_wait_counter <= P_DELAY;
-            end
-            
-            PEDESTRIAN_STATE_G_WAIT: begin 
-                if (pedestrian_wait_counter > 0) begin
-                    pedestrian_wait_counter <= pedestrian_wait_counter - 1;
-                end
-                else begin
-                    pedestrian_state <= PEDESTRIAN_STATE_R;
-                end
-            end
-        endcase
-    end
-    /*** pedestrian ***/
     
 endmodule
 

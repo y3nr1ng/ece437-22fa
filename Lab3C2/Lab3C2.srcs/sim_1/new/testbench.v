@@ -11,7 +11,7 @@
 // Target Devices: 
 // Tool Versions: 
 // Description: 
-// 
+// Test run the traffic light control module with a single pedestrian event.
 // Dependencies: 
 // 
 // Revision:
@@ -37,7 +37,11 @@ module testbench();
     end
     
     // wire up the module
-    traffic module_under_test(
+    traffic #(
+        .green_delay (6),
+        .yellow_delay (4),
+        .pedestrian_delay (10)
+    ) module_under_test (
         .button (button),
         .led (led),
         
@@ -46,7 +50,23 @@ module testbench();
     );
     
     initial begin
-        #0 button <= 0;        
+        #0 button <= 0; 
+        
+        // pedestrian waiting @ NS green     
+        #60_000_000 button <= 1; // @ 60 ms
+        #10 button <= 0; 
+        
+        // pedestrian waiting @ NS yellow
+        #50_000_000 button <= 1; // @ 110 ms
+        #10 button <= 0;
+        
+        // pedestrian waiting @ EW green     
+        #20_000_000 button <= 1; // @ 60 ms
+        #1_000 button <= 0; 
+        
+        // pedestrian waiting @ EW yellow
+        #48_000_000 button <= 1; // @ 110 ms
+        #1_000 button <= 0;
     end
     
 endmodule

@@ -29,7 +29,8 @@ module traffic_ok(
     input   wire    sys_clkn,
     input   wire    sys_clkp,
     
-    output [7:0] led
+    output [7:0] led,
+    input  [3:0] button
 );
 
     /*** ok ***/
@@ -58,12 +59,19 @@ module traffic_ok(
     /*** ok endpoints ***/
     
     /*** main ***/
-    wire button;
     
-    assign button = |button_endpoint;
+    // allow either software or hardware trigger
+    wire button_wire, sw_button, hw_button;
+    assign sw_button = button_endpoint[0];    // software
+    assign hw_button = ~button[0];          // hardware
+    assign button_wire = sw_button | hw_button;
     
-    traffic module_under_test(
-        .button (button),
+    traffic #(
+        .green_delay (1000),
+        .yellow_delay (500),
+        .pedestrian_delay (1000)
+    ) traffic_control (
+        .button (button_wire),
         .led (led),
         
         .sys_clkn (sys_clkn),
