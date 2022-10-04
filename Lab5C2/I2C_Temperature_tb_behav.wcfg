@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="I2C_Temperature_tb_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="I2C_Temperature_tb" />
+            <top_module name="glbl" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="8827000000000fs"></ZoomStartTime>
+      <ZoomEndTime time="9625000000001fs"></ZoomEndTime>
+      <Cursor1Time time="9068000000000fs"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="175"></NameColumnWidth>
+      <ValueColumnWidth column_width="58"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="4" />
+   <wvobject fp_name="/I2C_Temperature_tb/button_control_reg" type="logic">
+      <obj_property name="ElementShortName">button_control_reg</obj_property>
+      <obj_property name="ObjectShortName">button_control_reg</obj_property>
+   </wvobject>
+   <wvobject fp_name="/I2C_Temperature_tb/I2C_SCL_0" type="logic">
+      <obj_property name="ElementShortName">I2C_SCL_0</obj_property>
+      <obj_property name="ObjectShortName">I2C_SCL_0</obj_property>
+   </wvobject>
+   <wvobject fp_name="/I2C_Temperature_tb/I2C_SDA_0" type="logic">
+      <obj_property name="ElementShortName">I2C_SDA_0</obj_property>
+      <obj_property name="ObjectShortName">I2C_SDA_0</obj_property>
+   </wvobject>
+   <wvobject fp_name="group36" type="group">
+      <obj_property name="label">ila</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject fp_name="/I2C_Temperature_tb/ACK_bit" type="logic">
+         <obj_property name="ElementShortName">ACK_bit</obj_property>
+         <obj_property name="ObjectShortName">ACK_bit</obj_property>
+      </wvobject>
+      <wvobject fp_name="/I2C_Temperature_tb/SCL" type="logic">
+         <obj_property name="ElementShortName">SCL</obj_property>
+         <obj_property name="ObjectShortName">SCL</obj_property>
+      </wvobject>
+      <wvobject fp_name="/I2C_Temperature_tb/SDA" type="logic">
+         <obj_property name="ElementShortName">SDA</obj_property>
+         <obj_property name="ObjectShortName">SDA</obj_property>
+      </wvobject>
+      <wvobject fp_name="/I2C_Temperature_tb/State" type="array">
+         <obj_property name="ElementShortName">State[7:0]</obj_property>
+         <obj_property name="ObjectShortName">State[7:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/I2C_Temperature_tb/TrigerEvent" type="logic">
+         <obj_property name="ElementShortName">TrigerEvent</obj_property>
+         <obj_property name="ObjectShortName">TrigerEvent</obj_property>
+      </wvobject>
+      <wvobject fp_name="/I2C_Temperature_tb/FSM_Clk" type="logic">
+         <obj_property name="ElementShortName">FSM_Clk</obj_property>
+         <obj_property name="ObjectShortName">FSM_Clk</obj_property>
+      </wvobject>
+   </wvobject>
+</wave_config>
