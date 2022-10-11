@@ -177,10 +177,22 @@ plt.xlabel("Supplied Voltage (V)")
 plt.ylabel("Measured Current (A)")
 plt.draw()
 
+power = data[:, 0] * data[:, 2]
+v_err = data[:, 1]
+i_err = data[:, 3]
+p_err = np.sqrt(v_err**2 + i_err**2)
+plt.figure()
+plt.plot(voltages, power)
+plt.errorbar(voltages, power, yerr=p_err*100)
+plt.title("Voltage vs. Power")
+plt.xlabel("Supplied Voltage (V)")
+plt.ylabel("Measured Power (W)")
+plt.draw()
+
 plt.figure()
 plt.plot(voltages, data[:, 4])
 plt.errorbar(voltages, data[:, 4], yerr=data[:, 5])
-plt.title("Voltage vs. Current")
+plt.title("Voltage vs. Temperature")
 plt.xlabel("Supplied Voltage (V)")
 plt.ylabel("Measured Temperature (degC)")
 plt.draw()
