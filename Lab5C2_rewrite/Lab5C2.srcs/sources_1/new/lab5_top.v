@@ -40,101 +40,92 @@ module lab5_top(
     // led debug
     output [7:0]    led
 );
-
-    /*** clock source ***/
-    wire fsm_clk;
-    wire ila_clk;
     
-    clock_generator clock (
-        .sys_clkn (sys_clkn),
-        .sys_clkp (sys_clkp),
-        
-        .fsm_clk (fsm_clk),    
-        .ila_clk (ila_clk) 
-    );
-    /*** clock source ***/
-
-    /*** the temperature sensor ***/
-    wire        trigger_wire;
-    wire        ready_wire;
-    wire [15:0] data_wire;
-    wire        error_wire;
-    
-    assign led[7] = error_wire;
-    
-    adt7420 sensor (
-        // clock
-        .clk (fsm_clk),
-        
-        // chip address
-        .a0 (ADT7420_A0),
-        .a1 (ADT7420_A1), 
-        
-        // i2c interface
-        .scl (I2C_SCL_0),
-        .sda (I2C_SDA_0),
-        
-        // control interface
-        .start (trigger_wire),
-        .ready (ready_wire),
-        .temperature (data_wire),
-        
-        .error (error_wire)
-    );
-    /*** the temperature sensor ***/
+    /*** sensor address ***/
+    assign ADT7420_A0 = 1;
+    assign ADT7420_A1 = 1;
+    /*** sensor address ***/
     
     /*** ok interface ***/
+    wire clk_ti;
+    
     wire [112:0]    okHE;
     wire [64:0]     okEH;
     
-    okHost hostIF (
+    okHost host (
         .okUH (okUH),
         .okHU (okHU),
         .okUHU (okUHU),
-        .okClk (okClk),
+        .okClk (clk_ti),
         .okAA (okAA),
         .okHE (okHE),
         .okEH (okEH)
     );
     /*** ok interface ***/
     
-    /*** ok input endpoints ***/
-    // input, 0x00, read sensor
-    okWireIn endpoint_00 (   
-        .okHE (okHE), 
-        .ep_addr (8'h00), 
-        .ep_dataout (trigger_wire)
-    ); 
-    /*** ok input endpoints ***/
+    /*** ok endpoints ***/
+    wire [31:0] wi_00_wire;
+    wire [31:0] ti_40_wire;
+    wire [31:0] to_60_wire;
     
-    /*** ok output endpoints ***/
     localparam  endpoint_count = 2;
     wire [endpoint_count*65-1:0] okEHx;  
     okWireOR # (.N(endpoint_count)) wireOR (okEH, okEHx);
     
-    // output, 0x20, is ready
-    okWireOut endpoint_20 (
-        .okHE (okHE), 
-        .okEH (okEHx[ 0*65 +: 65 ]),
-        .ep_addr (8'h20), 
-        .ep_datain (ready_wire)
+    // input, 0x00, reset
+    okWireIn     wi_00 (.okHE (okHE),                                               .ep_addr (8'h00), .ep_dataout (wi_00_wire)); 
+    // input, 0x01, input data
+    okWireIn     wi_01 (.okHE (okHE),                                               .ep_addr (8'h01), .ep_dataout (i_mem_data)); 
+    // output, 0x20, output data
+    okWireOut    wo_20 (.okHE (okHE), .okEH (okEHx[ 0*65 +: 65 ]),                  .ep_addr (8'h20), .ep_datain (o_mem_data));
+    // trigger in, 0x40
+    //  0: i2c start
+    //  1: i2c mem start
+    //  2: i2c mem write
+    //  3: i2c mem read
+    okTriggerIn  ti_40 (.okHE (okHE), .ep_clk(clk_ti),                              .ep_addr (8'h40), .ep_trigger (ti_40_wire));
+    // trigger out, 0x60, i2c done
+    //  0: i2c done
+    okTriggerOut to_60 (.okHE (okHE), .okEH (okEHx[ 1*65 +: 65 ]), .ep_clk(clk_ti), .ep_addr (8'h60), .ep_trigger (to_60_wire));
+    /*** ok endpoints ***/
+    
+    /*** i2c ***/
+    wire reset_async;
+    wire reset_clk_ti;
+    
+    assign reset_async = wi_00_wire[0];
+    
+    sync_reset sync_reset_inst (
+        .i_clk (clk_ti),
+        .i_async_reset (reset_async),
+        .o_sync_reset (reset_clk_ti)
     );
     
-    // output, 0x21, read temperature
-    okWireOut endpoint_21 (
-        .okHE (okHE), 
-        .okEH (okEHx[ 1*65 +: 65 ]),
-        .ep_addr (8'h21), 
-        .ep_datain (data_wire)
+    wire [31:0] i_mem_data;
+    wire [31:0] o_mem_data;
+       
+    i2c_master #(
+        .CLK_DIVIDER (256)
+    ) i2c_master_inst (
+        .i_clk (clk_ti),
+        
+        // controls
+        .i_rst (reset_clk_ti),
+        .i_start (ti_40_wire[0]),
+        .o_done (to_60_wire[0]),
+        
+        // data
+        .i_mem_clk (clk_ti),
+        .i_mem_start (ti_40_wire[1]),
+        .i_mem_write (ti_40_wire[2]),
+        .i_mem_read (ti_40_wire[3]),
+        .i_mem_data (i_mem_data[7:0]),
+        .o_mem_data (o_mem_data[7:0]),
+         
+        // wirings
+        .io_scl (I2C_SCL_0),
+        .io_sda (I2C_SDA_0)
     );
-    /*** ok output endpoints ***/
-    
-    /*** the debug probe ***/
-    ila_0 ila_sample2 (
-        .clk (ila_clk),
-        .probe0 ({}),
-        .probe1 ({fsm_clk, trigger_wire})
-    );
-    /*** the debug probe ***/
+    /*** i2c ***/
     
 endmodule

@@ -21,437 +21,330 @@
 
 
 module i2c_master #(
-    parameter ADDR_WIDTH = 7,
-    parameter REG_WIDTH = 8, 
-    parameter DATA_WIDTH = 8
-)(
-    // clock
+    parameter CLK_STRETCH_SUPPORT = 1,
+    parameter CLK_DIVIDER = 16'd32
+) (
     input               i_clk,
-    input wire [15:0]   i_divider, // clock divider
     
     // controls
-    input               i_rst,      // reset
-    input               i_enable,   // kick start the transfer
-    input               i_rw,       // 0: write, 1: read
-    output reg          o_busy,     // 1: busy
-    input       [ADDR_WIDTH-1:0]    i_device_addr,  // device address
-    input       [REG_WIDTH-1:0]     i_reg_addr,     // register address
-    input       [DATA_WIDTH-1:0]    i_mosi_data,    // data to send
-    output reg  [DATA_WIDTH-1:0]    o_miso_data,    // data to read
-    output reg          o_error,    // 1: error             
+    input               i_rst,     
+    input               i_start,   
+    output reg          o_done,
     
-    // physical wirings
+    // data
+    input               i_mem_clk,
+    input               i_mem_start,
+    input               i_mem_write,
+    input               i_mem_read,
+    input  [7:0]        i_mem_data,
+    output [7:0]        o_mem_data,
+    
+    // wirings
     inout               io_scl,
     inout               io_sda
 );
     
-    /*** tick generator ***/
-    reg [15:0]  counter = 0;
-    wire        fsm_tick;
+    /*** frame tokenizer ***/
+    reg             start;
+    reg             stop;
+    reg             write;
+    reg             read;
+    wire            done;
+    reg             ack_r;
+    reg     [7:0]   mosi_data;
+    wire    [7:0]   miso_data;
     
-    always @(posedge i_clk) begin
-        if (i_rst) begin 
-            counter <= 0;
-        end 
+    i2c_frame #(
+        .CLK_STRETCH_SUPPORT (CLK_STRETCH_SUPPORT),
+        .CLK_DIVIDER (CLK_DIVIDER)
+    ) tokenizer (
+        .i_clk (i_clk),
+        
+        // controls
+        .i_rst (i_rst),
+        .i_start (start),
+        .i_stop (stop),
+        .i_write (write),
+        .i_read (read),
+        .o_done (done),
+        
+        // data
+        .i_mosi_data (mosi_data),
+        .o_miso_data (miso_data),
+        .i_ack_r (ack_r),
+        .o_ack_w (),
+        
+        // wirings
+        .io_scl (io_scl),
+        .io_sda (io_sda)
+    );
+    /*** frame tokenizer ***/
+    
+    /*** memory ***/
+    reg [5:0] mem_addr;
+    
+    always @(posedge i_mem_clk) begin
+        if (i_mem_start) begin
+            mem_addr <= 0;
+        end
         else begin
-            if (counter == i_divider) begin
-                counter <= 0;
+            if (i_mem_write || i_mem_read) begin 
+                mem_addr <= mem_addr + 1;
             end
-            else begin
-                counter <= counter + 1;
-            end
-        end    
+        end
     end
     
-    assign fsm_tick = (counter == i_divider);
-    /*** tick generator ***/
+    // command memory
+    reg     [5:0]   cmem_addr;
+    wire    [7:0]   cmem_data;
+    dram64x8 cmem (
+        .i_clk (i_mem_clk),
+        
+        .i_we (i_mem_write),
+        .i_data (i_mem_data),
+        
+        .i_addr_a (mem_addr),
+        .o_data_a (),
+        
+        .i_addr_b (cmem_addr),
+        .o_data_b (cmem_data)
+    );
     
-    /*** input output buffers ***/
-    reg enable = 0;
-    reg rw = 0;
+    // result memory
+    reg     [5:0]   rmem_addr;
+    reg             rmem_write;
+    dram64x8 rmem (
+        .i_clk (i_mem_clk),
+        
+        .i_we (rmem_write),
+        .i_data (miso_data),
+        
+        .i_addr_a (rmem_addr),
+        .o_data_a (),
+        
+        .i_addr_b (mem_addr),
+        .o_data_b (o_mem_data)
+    );
+    /*** memory ***/
     
-    reg [ADDR_WIDTH-1:0]    device_addr = 0;
-    reg [REG_WIDTH-1:0]     reg_addr = 0;
-    reg [DATA_WIDTH-1:0]    mosi_data = 0;
-    reg [DATA_WIDTH-1:0]    byte_data = 0;
-    reg ack_recv = 0;
+    /*** fsm for the communication ***/
+    integer state;
+    parameter S_IDLE = 0,
+              S_GET_PREAMBLE_LENGTH = 10,   // get transaction info
+              S_GET_PREAMBLE_STARTS = 11,
+              S_GET_PREAMBLE_STOPS = 12, 
+              S_GET_PAYLOAD_LENGTH = 13,
+              S_PREAMBLE_START = 20,        // preamble
+              S_PREAMBLE_STARTWAIT = 21,
+              S_PREAMBLE_TX = 22, 
+              S_PREAMBLE_TXWAIT = 23,
+              S_PREAMBLE_STARTSTOPWAIT = 24,
+              S_PREAMBLE_NEXT = 25,
+              S_PAYLOAD = 30,               // payload
+              S_PAYLOAD_WAIT = 31,
+              S_PAYLOAD_STOP = 32,
+              S_PAYLOAD_STOPWAIT = 33;
+             
     
-    reg scl_out = 1;
-    reg sda_out = 1;
-    /*** input output buffers ***/
-
-    /*** main fsm ***/
-    localparam I2C_IDLE                 = 4'd0;
-    localparam I2C_START                = 4'd1;
-    localparam I2C_WRITE_DEVICE_ADDR_W  = 4'd2;
-    localparam I2C_WRITE_REG_ADDR       = 4'd3;
-    localparam I2C_WRITE_REG_DATA       = 4'd4;
-    localparam I2C_WRITE_BITS           = 4'd5;
-    localparam I2C_CHECK_ACK            = 4'd6;
-    localparam I2C_READ_REG_DATA        = 4'd7;
-    localparam I2C_RESTART              = 4'd8;
-    localparam I2C_WRITE_DEVICE_ADDR_R  = 4'd9;
-    localparam I2C_READ_BITS            = 4'd10;
-    localparam I2C_SEND_ACK             = 4'd11;
-    localparam I2C_SEND_NACK            = 4'd12;
-    localparam I2C_STOP                 = 4'd13;
+    reg write_frame;
     
-    localparam I2C_STEP_PREPARE     = 2'd0;
-    localparam I2C_STEP_RISING      = 2'd1;
-    localparam I2C_STEP_STRETCHING  = 2'd2;
-    localparam I2C_STEP_FALLING     = 2'd3;
+    reg [2:0]   preamble_length;
+    reg [2:0]   preamble_count;
+    reg [7:0]   preamble_starts;
+    wire        preamble_start;
+    reg [7:0]   preamble_stops;
+    wire        preamble_stop;
+    reg [6:0]   payload_length;
+    reg [6:0]   payload_count;
     
-    reg [3:0] state = I2C_IDLE;     
-    reg [3:0] ack_state = I2C_IDLE; // state after an ack    
-    reg [1:0] step_counter = 0;     // fraction steps in each state
-    reg [3:0] bit_counter = 0;      // assume maximum tranferrable 16 bits
+    mux8to1 mux_starts (
+        .i_data (preamble_starts),
+        .sel (preamble_count),
+        .o_data (preamble_start) 
+    );
     
-    always @(posedge i_clk) begin 
+    mux8to1 mux_stops (
+        .i_data (preamble_stops),
+        .sel (preamble_count),
+        .o_data (preamble_stop)
+    );
+    
+    always @(posedge i_clk) begin
         if (i_rst) begin
-            enable <= 0;
-            rw <= 0;
-            device_addr <= 0;
-            reg_addr <= 0;
+            state <= S_IDLE;
+            
+            o_done <= 0;
+            
+            cmem_addr <= 0;
+            rmem_addr <= 0;
+            rmem_write <= 0;
+            
+            start <= 0;
+            stop <= 0;
+            write <= 0; 
+            read <= 0;
+            
+            write_frame <= 0;
+            ack_r <= 0;
             mosi_data <= 0;
-            o_busy <= 0;
             
-            ack_recv <= 0;
+            preamble_length <= 0;
+            preamble_count <= 0;
+            preamble_starts <= 0;
+            preamble_stops <= 0;
+            payload_length <= 0;
+            payload_count <= 0;
+        end 
+        else begin
+            start <= 0;
+            stop <= 0;
+            write <= 0; 
+            read <= 0;
+            o_done <= 0;
+            rmem_write <= 0;
             
-            o_error <= 0;
-            
-            step_counter <= 0;
-            state <= I2C_IDLE;
-            
-            scl_out <= 1;
-            sda_out <= 1;
-        end
-        else if (fsm_tick) begin
-            case (state)
-                I2C_IDLE: begin
-                    // pull input and set output
-                    enable <= i_enable;
-                    rw <= i_rw;
-                    device_addr <= i_device_addr;
-                    reg_addr <= i_reg_addr;
-                    mosi_data <= i_mosi_data;
-                    o_busy <= 0;
-                    
-                    ack_recv <= 0;
-                    
-                    o_error <= 0;
-                    
-                    step_counter <= 0;
-                    if (enable) begin
-                        state <= I2C_START;
-                    end
-                    
-                    // idle physical state
-                    scl_out <= 1;
-                    sda_out <= 1;
-                end 
-                
-                I2C_START: begin
-                    //  1) clear sda
-                    //  2) clear scl
-                    case (step_counter) 
-                        I2C_STEP_PREPARE: begin
-                            step_counter <= 1;
-                            
-                            o_busy <= 1;
-                            enable <= 0;
-                        end
-                        
-                        I2C_STEP_RISING: begin
-                            step_counter <= 2;
-                            
-                            sda_out <= 0;
-                        end
-                        
-                        I2C_STEP_STRETCHING: begin
-                            step_counter <= 3;                         
-                        end
-                        
-                        I2C_STEP_FALLING: begin 
-                            step_counter <= 0; 
-                            
-                            scl_out <= 0;
-                            state <= I2C_WRITE_DEVICE_ADDR_W;
-                        end
-                    endcase
-                end
-                
-                I2C_WRITE_DEVICE_ADDR_W: begin
-                    bit_counter <= ADDR_WIDTH;
-                    byte_data <= { device_addr, 1'b0 }; // write
-                    
-                    state <= I2C_WRITE_BITS; 
-                    ack_state <= I2C_WRITE_REG_ADDR;
-                end
-                
-                I2C_WRITE_REG_ADDR: begin
-                    bit_counter <= REG_WIDTH;
-                    byte_data <= reg_addr;
-                    
-                    state <= I2C_WRITE_BITS; 
-                    if (rw == 0) begin
-                        ack_state <= I2C_WRITE_REG_DATA;
-                    end
-                    else begin 
-                        ack_state <= I2C_READ_REG_DATA;
+            case (state) 
+                S_IDLE: begin
+                    cmem_addr <= 6'h00;
+                    rmem_addr <= 6'h3f;
+                    if (i_start) begin
+                        state <= S_GET_PREAMBLE_LENGTH;
                     end
                 end
                 
-                I2C_WRITE_REG_DATA: begin 
-                    bit_counter <= DATA_WIDTH;
-                    byte_data <= mosi_data;
-                    
-                    state <= I2C_WRITE_BITS;
-                    ack_state <= I2C_STOP;
+                /*** initialize ***/
+                S_GET_PREAMBLE_LENGTH: begin
+                    preamble_length <= cmem_data[2:0];
+                    write_frame <= ~cmem_data[7];
+                    cmem_addr <= cmem_addr + 1;
+                    state <= S_GET_PREAMBLE_STARTS; 
                 end
                 
-                I2C_WRITE_BITS: begin
-                    //  1) set/clear sda
-                    //  2) set scl
-                    //  3) clock stretching
-                    //  4) clear scl
-                    case (step_counter) 
-                        I2C_STEP_PREPARE: begin
-                            step_counter <= 1;
-                            
-                            sda_out <= byte_data[bit_counter-1];
-                            bit_counter <= bit_counter - 1;
-                        end
-                        
-                        I2C_STEP_RISING: begin
-                            step_counter <= 2;
-                            
-                            scl_out <= 1;
-                        end
-                        
-                        I2C_STEP_STRETCHING: begin
-                            if (io_scl == 1) begin
-                                step_counter <= 3;
-                            end                         
-                        end
-                        
-                        I2C_STEP_FALLING: begin 
-                            step_counter <= 0; 
-                            
-                            scl_out <= 0;
-                            if (bit_counter == 0) begin
-                                state <= I2C_CHECK_ACK;
-                            end
-                        end
-                    endcase
+                S_GET_PREAMBLE_STARTS: begin
+                    preamble_starts <= cmem_data[7:0];
+                    cmem_addr <= cmem_addr + 1;
+                    state <= S_GET_PREAMBLE_STOPS;
                 end
                 
-                I2C_CHECK_ACK: begin 
-                    case (step_counter) 
-                        I2C_STEP_PREPARE: begin
-                            step_counter <= 1;
-                        end
-                        
-                        I2C_STEP_RISING: begin
-                            step_counter <= 2;
-                            
-                            scl_out <= 1;
-                        end
-                        
-                        I2C_STEP_STRETCHING: begin
-                            if (io_scl == 1) begin
-                                step_counter <= 3;
-                                
-                                // read ack
-                                ack_recv <= ~io_sda;
-                            end                         
-                        end
-                        
-                        I2C_STEP_FALLING: begin 
-                            step_counter <= 0; 
-                            
-                            scl_out <= 0;
-                            
-                            if (ack_recv) begin
-                                state <= ack_state;
-                            end 
-                            else begin
-                                state <= I2C_IDLE; // damaged frame
-                            end
-                        end
-                    endcase
+                S_GET_PREAMBLE_STOPS: begin
+                    preamble_stops <= cmem_data[7:0];
+                    cmem_addr <= cmem_addr + 1;
+                    state <= S_GET_PAYLOAD_LENGTH;
                 end
                 
-                I2C_READ_REG_DATA: begin
-                    bit_counter <= DATA_WIDTH;
-                    
-                    state <= I2C_RESTART;
+                S_GET_PAYLOAD_LENGTH: begin 
+                    payload_length <= cmem_data[6:0];
+                    payload_count <= 0;
+                    cmem_addr <= cmem_addr + 1;
+                    state <= S_PREAMBLE_START;
+                end
+                /*** initialize ***/ 
+                
+                /*** preamble ***/
+                S_PREAMBLE_START: begin
+                    preamble_count <= 0; 
+                    start <= 1;
+                    state <= S_PREAMBLE_STARTWAIT;
                 end
                 
-                I2C_RESTART: begin 
-                    //  1) sda hi-z
-                    //  2) set scl
-                    //  3) clock stretching
-                    //  4) clear scl
-                    case (step_counter) 
-                        I2C_STEP_PREPARE: begin
-                            step_counter <= 1;
-                        end
-                        
-                        I2C_STEP_RISING: begin
-                            step_counter <= 2;
-                            
-                            scl_out <= 1;
-                        end
-                        
-                        I2C_STEP_STRETCHING: begin
-                            if (io_scl == 1) begin
-                                step_counter <= 3;
-                            end                         
-                        end
-                        
-                        I2C_STEP_FALLING: begin 
-                            step_counter <= 0; 
-                            
-                            scl_out <= 0;
-                            
-                            state <= I2C_WRITE_DEVICE_ADDR_R;
-                        end
-                    endcase
+                S_PREAMBLE_STARTWAIT: begin
+                    if (done) begin
+                        state <= S_PREAMBLE_TX;
+                    end
                 end
                 
-                I2C_WRITE_DEVICE_ADDR_R: begin
-                    bit_counter <= ADDR_WIDTH;
-                    byte_data <= { device_addr, 1'b1 }; // read
-                    
-                    state <= I2C_WRITE_BITS; 
-                    ack_state <= I2C_READ_BITS;
+                S_PREAMBLE_TX: begin
+                    write <= 1;
+                    mosi_data <= cmem_data[7:0];
+                    cmem_addr <= cmem_addr + 1;
+                    state <= S_PREAMBLE_TXWAIT;
                 end
                 
-                I2C_READ_BITS: begin
-                    //  1) sda hi-z
-                    //  2) set scl
-                    //  3) clock stretching
-                    //  4) clear scl
-                    case (step_counter) 
-                        I2C_STEP_PREPARE: begin
-                            step_counter <= 1;
+                S_PREAMBLE_TXWAIT: begin
+                    if (done) begin
+                        preamble_count <= preamble_count + 1;
+                        state <= S_PREAMBLE_NEXT;
+                        if (preamble_start) begin
+                            start <= 1;
+                            state <= S_PREAMBLE_STARTSTOPWAIT;
+                        end 
+                        else if (preamble_stop) begin
+                            stop <= 1;
+                            state <= S_PREAMBLE_STARTSTOPWAIT; 
                         end
-                        
-                        I2C_STEP_RISING: begin
-                            step_counter <= 2;
-                            
-                            scl_out <= 1;
-                        end
-                        
-                        I2C_STEP_STRETCHING: begin
-                            if (io_scl == 1) begin
-                                step_counter <= 3;
-                                
-                                o_miso_data[bit_counter-1] <= io_sda;
-                                bit_counter <= bit_counter - 1;
-                            end                         
-                        end
-                        
-                        I2C_STEP_FALLING: begin 
-                            step_counter <= 0; 
-                            
-                            scl_out <= 0;
-                            if (bit_counter == 0) begin
-                                state <= I2C_SEND_NACK;
-                            end
-                        end
-                    endcase
+                    end
                 end
                 
-                I2C_SEND_ACK: begin 
-                    // TODO use in multi-byte read
-                    o_error <= 1;
-                    state <= I2C_IDLE;
+                S_PREAMBLE_STARTSTOPWAIT: begin
+                    if (done) begin
+                        state <= S_PREAMBLE_NEXT;
+                    end
                 end
                 
-                I2C_SEND_NACK: begin 
-                    case (step_counter) 
-                        I2C_STEP_PREPARE: begin
-                            step_counter <= 1;
-                            
-                            sda_out <= 1;
-                        end
-                        
-                        I2C_STEP_RISING: begin
-                            step_counter <= 2;
-                            
-                            scl_out <= 1;
-                        end
-                        
-                        I2C_STEP_STRETCHING: begin
-                            if (io_scl == 1) begin
-                                step_counter <= 3;
-                                
-                                // reset ack reg
-                                ack_recv <= 0;
-                            end                         
-                        end
-                        
-                        I2C_STEP_FALLING: begin 
-                            step_counter <= 0; 
-                            
-                            scl_out <= 0;
-                            
-                            state <= I2C_STOP;
-                        end
-                    endcase
-                end 
+                S_PREAMBLE_NEXT: begin
+                    if (preamble_count == preamble_length) begin
+                        state <= S_PAYLOAD; 
+                    end 
+                    else begin
+                        state <= S_PREAMBLE_TX;
+                    end 
+                end
+                /*** preamble ***/
                 
-                I2C_STOP: begin 
-                    //  1) clear sda
-                    //  2) set scl
-                    //  3) set sda
-                    case (step_counter) 
-                        I2C_STEP_PREPARE: begin
-                            step_counter <= 1;
-                            
-                            sda_out <= 0;
-                        end
+                /*** payload ***/
+                S_PAYLOAD: begin
+                    payload_count <= payload_count + 1;
+                    state <= S_PAYLOAD_WAIT;
+                    if (write_frame) begin
+                        write <= 1;
+                        mosi_data <= cmem_data[7:0];
+                        cmem_addr <= cmem_addr + 1;
+                    end 
+                    else begin
+                        read <= 1;
                         
-                        I2C_STEP_RISING: begin
-                            step_counter <= 2;
-                            
-                            scl_out <= 1;
+                        // send nack 
+                        if (payload_count == payload_length - 1) begin
+                            ack_r <= 1;
+                        end 
+                        else begin
+                            ack_r <= 0;
                         end
-                        
-                        I2C_STEP_STRETCHING: begin
-                            if (io_scl == 1) begin
-                                step_counter <= 3;
-                            end                         
-                        end
-                        
-                        I2C_STEP_FALLING: begin 
-                            step_counter <= 0; 
-                            
-                            sda_out <= 1;
-                            
-                            state <= I2C_IDLE;
-                        end
-                    endcase
+                    end
                 end
                 
-                default: begin
-                    o_error <= 1;
-                    state <= I2C_IDLE;
+                S_PAYLOAD_WAIT: begin
+                    if (done) begin 
+                        if (write_frame) begin  
+                            rmem_write <= 1;
+                            rmem_addr <= rmem_addr + 1;
+                        end 
+                        
+                        if (payload_count == payload_length) begin
+                            state <= S_PAYLOAD_STOP;
+                        end
+                        else begin
+                            state <= S_PAYLOAD;
+                        end
+                    end
                 end
+                
+                S_PAYLOAD_STOP: begin
+                    stop <= 1;
+                    state <= S_PAYLOAD_STOPWAIT; 
+                end
+                
+                S_PAYLOAD_STOPWAIT: begin
+                    if (done) begin 
+                        o_done <= 1;
+                        state <= S_IDLE;
+                    end
+                end
+                /*** payload ***/
+                
             endcase
         end
     end
-    /*** main fsm ***/
-    
-    /*** hi-z control ***/
-    wire scl_oe;
-    assign scl_oe = (step_counter != I2C_STEP_STRETCHING); // step 2 is for clock stretching
-    assign io_scl = (scl_oe) ? scl_out : 1'bz;
-    
-    wire sda_oe;
-    assign sda_oe = (state != I2C_IDLE) & (state != I2C_CHECK_ACK) & (state != I2C_READ_BITS);
-    assign io_sda = (sda_oe) ? sda_out : 1'bz;
-    /*** hi-z control ***/
+    /*** fsm for the communication ***/
     
 endmodule
