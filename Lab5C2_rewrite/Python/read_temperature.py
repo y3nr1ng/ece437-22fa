@@ -161,7 +161,7 @@ class I2CController(OKFrontPanel):
             if self._device.IsTriggered(self.TRIGGER_OUT, 1<<self.TRIGGER_OUT_DONE):
                 logger.debug('.. [TO] done')
                 break
-            time.sleep(t_sleep)
+            time.sleep(t_sleep / 1000)
         else:
             raise TimeoutError('unable to complete transmit')
     
@@ -182,14 +182,14 @@ class I2CController(OKFrontPanel):
             self._device.SetWireInValue(self.WIRE_IN_DATA, byte, 0x00ff)
             self._device.UpdateWireIns()
             self._device.ActivateTriggerIn(self.TRIGGER_IN, self.TRIGGER_IN_MEM_WRITE)
-            logger.debug('.. [TI] mem write')
+            logger.debug(f'.. [TI] mem write, {byte:02x}')
             
         # start the transaction
         self._device.ActivateTriggerIn(self.TRIGGER_IN, self.TRIGGER_IN_GO)
         
         # wait for the transaction to finish
         data = []
-        t_sleep = float(self.MAX_TIMEOUT) / self.MAX_RETRIES / 1000
+        t_sleep = float(self.MAX_TIMEOUT) / self.MAX_RETRIES
         for _ in range(self.MAX_RETRIES):
             self._device.UpdateTriggerOuts()
             if self._device.IsTriggered(self.TRIGGER_OUT, 1<<self.TRIGGER_OUT_DONE):
@@ -199,11 +199,13 @@ class I2CController(OKFrontPanel):
                 logger.debug('.. [TI] mem reset')
                 for _ in range(length):
                     self._device.UpdateWireOuts()
-                    data.append(self._device.GetWireOutValue(self.WIRE_OUT_DATA))
+                    byte = self._device.GetWireOutValue(self.WIRE_OUT_DATA)
+                    logger.debug(f'.. [WO] [{self.WIRE_OUT_DATA:02x}]={byte:02x}')
+                    data.append(byte)
                     self._device.ActivateTriggerIn(self.TRIGGER_IN, self.TRIGGER_IN_MEM_READ)
                     logger.debug('.. [TI] mem read')
                 break
-            time.sleep(t_sleep)
+            time.sleep(t_sleep / 1000)
         else:
             raise TimeoutError('unable to complete receive')
             
@@ -211,32 +213,39 @@ class I2CController(OKFrontPanel):
     
     def write_to(self, dev_addr, reg_addr, reg_value):
         preamble = [
-            dev_addr & 0xfe,    # device address
+            dev_addr & 0xfe,    # device address (W)
             reg_addr,
         ]
         self.configure(0x00, 0x00, preamble)
         self.transmit(reg_value)
     
     def read_from(self, dev_addr, reg_addr, length):
+        dev_addr <<= 1
+        
         preamble = [
             dev_addr & 0xfe,    # device address (W)
             reg_addr,
             dev_addr | 0x01,    # device address (R)
         ]
         self.configure(0x02, 0x00, preamble)
+        
         reg_value = self.receive(length)
         
         return reg_value
     
 #%%
 path = "U:\\ECE437\\Source\\Lab5C2_rewrite\\Lab5C2.runs\\impl_1\\lab5_top.bit"
-path = None
+#path = None
 with I2CController(firmware_path=path) as dev:
-    print(dev.serial_number)
+    logger.info(f'serial={dev.serial_number}')
     
-    print('pulling temperature data from 0x00')
-    data = dev.read_from(0x4B, 0x00, 2)
-    print(data)
+    dev_addr = 0x4B
+    reg_addr = 0x0B
+    n_value = 1
+    print(f'{dev_addr << 1:08b}')
+    data = dev.read_from(dev_addr, reg_addr, n_value)
+    for i in range(n_value):
+        print(f'[{reg_addr+i:02x}]={data[i]:02x}')
 
-    print('..end')
+    logger.info('end')
     
