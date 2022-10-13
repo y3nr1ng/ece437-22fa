@@ -135,7 +135,7 @@ module i2c_frame #(
     reg read;
     
     // transfer state
-    reg         shift_count;
+    reg [3:0]   shift_count;
     reg [7:0]   shift_reg;
     
     // ack state
