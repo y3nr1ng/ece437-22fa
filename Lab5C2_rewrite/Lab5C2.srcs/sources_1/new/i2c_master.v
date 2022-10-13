@@ -315,7 +315,7 @@ module i2c_master #(
                 
                 S_PAYLOAD_WAIT: begin
                     if (done) begin 
-                        if (write_frame) begin  
+                        if (!write_frame) begin  
                             rmem_write <= 1;
                             rmem_addr <= rmem_addr + 1;
                         end 
