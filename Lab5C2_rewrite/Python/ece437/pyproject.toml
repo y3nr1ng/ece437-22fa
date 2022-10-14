@@ -8,6 +8,7 @@ authors = [
 ]
 dependencies = [
     "numpy", 
+    "coloredlogs"
 ]
 
 [project.optional-dependencies]

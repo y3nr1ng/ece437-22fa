@@ -1,0 +1,5 @@
+numpy
+coloredlogs
+
+[dev]
+black
