@@ -1,0 +1,18 @@
+[project]
+name = "ece437"
+description = "Ensemble of tools for ECE437"
+version = "0.0.1"
+authors = [
+    { name = "Yen-Ting Liu", email = "ytliu2@illinois.edu" },
+    { name = "Chun-Kai Yao", email = "ckyao2@illinois.edu" }
+]
+dependencies = [
+    "numpy", 
+]
+
+[project.optional-dependencies]
+dev = ["black"]
+
+[build-system]
+requires = ["setuptools>=43.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
