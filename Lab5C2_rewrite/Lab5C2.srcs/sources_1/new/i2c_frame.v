@@ -94,7 +94,7 @@ module i2c_frame #(
             end
             else begin
                 if (stretch_clk == 1'b0) begin
-                    counter <= counter + 1;
+                    counter <= counter + 1'b1;
                 end
                 else begin
                     counter <= 0;
@@ -137,6 +137,7 @@ module i2c_frame #(
     // transfer state
     reg [3:0]   shift_count;
     reg [7:0]   shift_reg;
+    assign o_miso_data = shift_reg;
     
     // ack state
     reg ack_r;
@@ -162,13 +163,13 @@ module i2c_frame #(
         
         if (i_write) begin
             write <= 1;
-            shift_count <= 8;
+            shift_count <= 4'd8;
             shift_reg <= i_mosi_data;
         end
         
         if (i_read) begin
             read <= 1;
-            shift_count <= 8;
+            shift_count <= 4'd8;
             shift_reg <= 8'h00;
             ack_r <= i_ack_r;
         end
@@ -269,7 +270,7 @@ module i2c_frame #(
                     scl_oe <= 0;
                     sda_out <= shift_reg[7];
                     shift_reg <= { shift_reg[6:0], 1'b0 };
-                    sda_oe <= (shift_count == 0);
+                    sda_oe <= (shift_count == 1'b0);
                     state <= S_WRITE_1;
                 end
                 
@@ -290,7 +291,7 @@ module i2c_frame #(
                     scl_oe <= 0;
                     sda_oe <= 0;
                     if (shift_count > 0) begin
-                        shift_count <= shift_count - 1;
+                        shift_count <= shift_count - 1'b1;
                         state <= S_WRITE_0;
                     end
                     else begin 
@@ -329,7 +330,7 @@ module i2c_frame #(
                 S_READ_3: begin
                     scl_oe <= 0;
                     if (shift_count > 0) begin
-                        shift_count <= shift_count - 1;
+                        shift_count <= shift_count - 1'b1;
                         state <= S_READ_0;
                     end 
                     else begin

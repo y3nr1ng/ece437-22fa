@@ -85,11 +85,11 @@ module i2c_master #(
     
     always @(posedge i_mem_clk) begin
         if (i_mem_start) begin
-            mem_addr <= 0;
+            mem_addr <= 6'd0;
         end
         else begin
             if (i_mem_write || i_mem_read) begin 
-                mem_addr <= mem_addr + 1;
+                mem_addr <= mem_addr + 1'b1;
             end
         end
     end
@@ -216,26 +216,26 @@ module i2c_master #(
                 S_GET_PREAMBLE_LENGTH: begin
                     preamble_length <= cmem_data[2:0];
                     write_frame <= ~cmem_data[7];
-                    cmem_addr <= cmem_addr + 1;
+                    cmem_addr <= cmem_addr + 1'b1;
                     state <= S_GET_PREAMBLE_STARTS; 
                 end
                 
                 S_GET_PREAMBLE_STARTS: begin
                     preamble_starts <= cmem_data[7:0];
-                    cmem_addr <= cmem_addr + 1;
+                    cmem_addr <= cmem_addr + 1'b1;
                     state <= S_GET_PREAMBLE_STOPS;
                 end
                 
                 S_GET_PREAMBLE_STOPS: begin
                     preamble_stops <= cmem_data[7:0];
-                    cmem_addr <= cmem_addr + 1;
+                    cmem_addr <= cmem_addr + 1'b1;
                     state <= S_GET_PAYLOAD_LENGTH;
                 end
                 
                 S_GET_PAYLOAD_LENGTH: begin 
                     payload_length <= cmem_data[6:0];
                     payload_count <= 0;
-                    cmem_addr <= cmem_addr + 1;
+                    cmem_addr <= cmem_addr + 1'b1;
                     state <= S_PREAMBLE_START;
                 end
                 /*** initialize ***/ 
@@ -256,13 +256,13 @@ module i2c_master #(
                 S_PREAMBLE_TX: begin
                     write <= 1;
                     mosi_data <= cmem_data[7:0];
-                    cmem_addr <= cmem_addr + 1;
+                    cmem_addr <= cmem_addr + 1'b1;
                     state <= S_PREAMBLE_TXWAIT;
                 end
                 
                 S_PREAMBLE_TXWAIT: begin
                     if (done) begin
-                        preamble_count <= preamble_count + 1;
+                        preamble_count <= preamble_count + 1'b1;
                         state <= S_PREAMBLE_NEXT;
                         if (preamble_start) begin
                             start <= 1;
@@ -293,18 +293,18 @@ module i2c_master #(
                 
                 /*** payload ***/
                 S_PAYLOAD: begin
-                    payload_count <= payload_count + 1;
+                    payload_count <= payload_count + 1'b1;
                     state <= S_PAYLOAD_WAIT;
                     if (write_frame) begin
                         write <= 1;
                         mosi_data <= cmem_data[7:0];
-                        cmem_addr <= cmem_addr + 1;
+                        cmem_addr <= cmem_addr + 1'b1;
                     end 
                     else begin
                         read <= 1;
                         
                         // send nack 
-                        if (payload_count == payload_length - 1) begin
+                        if (payload_count == payload_length - 1'b1) begin
                             ack_r <= 1;
                         end 
                         else begin
@@ -317,7 +317,7 @@ module i2c_master #(
                     if (done) begin 
                         if (!write_frame) begin  
                             rmem_write <= 1;
-                            rmem_addr <= rmem_addr + 1;
+                            rmem_addr <= rmem_addr + 1'b1;
                         end 
                         
                         if (payload_count == payload_length) begin
