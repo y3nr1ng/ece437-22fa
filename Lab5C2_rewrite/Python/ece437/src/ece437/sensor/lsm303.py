@@ -136,11 +136,13 @@ class LSM303Accelerometer:
         self._scale = full_scale
 
     def read(self) -> Tuple[float, float, float]:
+        """Request data from the accelerometer."""
         # NOTE |0x80 to do continuous read
         bytes = self._i2c.read_from(self.ADDRESS, self.OUT_X_L_A | 0x80, 6)
         value = []
         for lo, hi in zip(bytes[::2], bytes[1::2]):
             raw = int.from_bytes((hi, lo), byteorder='big', signed=True)
+            # NOTE from Adafruit, it seems that accelerometer only has 12-bit resolution
             raw >>= 4
             converted = raw * self.scale_to_sensitivity(self._scale)
             value.append(converted)
@@ -165,46 +167,46 @@ class LM303MagnetometerDataRate(IntEnum):
     RATE_1p5 = 0x01 
     """1.5 Hz"""
 
-    RATE_3p0 = 0x01 
+    RATE_3p0 = 0x02 
     """3.0 Hz"""
 
-    RATE_7p5 = 0x01 
+    RATE_7p5 = 0x03 
     """7.5 Hz"""
 
-    RATE_15 = 0x01 
+    RATE_15 = 0x04
     """15 Hz"""
 
-    RATE_30 = 0x01 
+    RATE_30 = 0x05 
     """30 Hz"""
 
-    RATE_75 = 0x01 
+    RATE_75 = 0x06 
     """75 Hz"""
 
-    RATE_220 = 0x01 
+    RATE_220 = 0x07 
     """220 Hz"""
 
 class LM303MagnetometerRange(IntEnum):
     """Input field range."""
 
-    GAIN_1p3 = 0x20
+    GAIN_1p3 = 0x01
     """+- 1.3 Gauss"""
 
-    GAIN_1p9 = 0x40
+    GAIN_1p9 = 0x02
     """+- 1.9 Gauss"""
 
-    GAIN_2p5 = 0x60
+    GAIN_2p5 = 0x03
     """+- 2.5 Gauss"""
 
-    GAIN_4p0 = 0x80
+    GAIN_4p0 = 0x04
     """+- 4.0 Gauss"""
 
-    GAIN_4p7 = 0xA0
+    GAIN_4p7 = 0x05
     """+- 4.7 Gauss"""
 
-    GAIN_5p6 = 0xC0
+    GAIN_5p6 = 0x06
     """+- 5.6 Gauss"""
 
-    GAIN_8p1 = 0xE0
+    GAIN_8p1 = 0x07
     """+- 8.1 Gauss"""
 
 class LSM303Magnetometer:
@@ -235,6 +237,66 @@ class LSM303Magnetometer:
 
         byte, = self._i2c.read_from(self.ADDRESS, self.CRA_REG_M, 1)
         print(f'CRA_REG_M={byte:>08b}')
+
+        self._xy_gain = None
+        self._z_gain = None
+
+    def configure(
+        self, 
+        rate: LM303MagnetometerDataRate=LM303MagnetometerDataRate.RATE_220, 
+        enable_temperature: bool=True,
+        range: LM303MagnetometerRange=LM303MagnetometerRange.GAIN_1p9
+    ) -> None:
+        """
+        Configure the magnetometer.
+        
+        Args:
+            rate (LM303MagnetometerDataRate, optional): data output rate.
+            enable_temperature (bool, optional): enable the temperature sensor.
+            range (LM303MagnetometerRange, optional): sensor input field range.
+        """
+        self._configure_cra(rate, enable_temperature)
+        self._configure_crb(range)
+        self._configure_mr()
+        
+    def _configure_cra(
+        self, 
+        rate: LM303AccelerometerDataRate, 
+        enable_temperature: bool
+    ) -> None:
+        value = (enable_temperature << 7) | (rate << 2)
+        logger.debug(f'set CRA_REG_M={value:>08b}')
+
+        self._i2c.write_to(self.ADDRESS, self.CRA_REG_M, [value])
+
+    def _configure_crb(self, range: LM303MagnetometerRange) -> None:
+        value = range << 5
+        logger.debug(f'set CRB_REG_M={value:>08b}')
+
+        self._i2c.write_to(self.ADDRESS, self.CRB_REG_M, [value])
+
+        self._xy_gain, self._z_gain = self.range_to_gain(range)
+        logger.debug(f'xy_gain={self._xy_gain}, z_gain={self._z_gain}')
+
+    def _configure_mr(self) -> None:
+        value = 0b00
+        self._i2c.write_to(self.ADDRESS, self.MR_REG_M, [value])
+
+    def read(self) -> Tuple[float, float, float]:
+        """Request data from the magnetometer."""
+        # NOTE |0x80 to do continuous read
+        bytes = self._i2c.read_from(self.ADDRESS, self.OUT_X_H_M, 6)
+        value = []
+        for hi, lo in zip(bytes[::2], bytes[1::2]):
+            raw = int.from_bytes((hi, lo), byteorder='big', signed=True)
+            value.append(raw)
+        
+        # divide by gain
+        value = [
+            float(raw) / gain 
+            for raw, gain in zip(value, (self._xy_gain, self._xy_gain, self._z_gain))
+        ]
+        return value
 
     @staticmethod
     def range_to_gain(range: LM303MagnetometerRange) -> Tuple[int, int]:
