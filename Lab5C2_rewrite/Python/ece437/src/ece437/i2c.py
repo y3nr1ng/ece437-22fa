@@ -37,6 +37,8 @@ I2CControllerEndpoints = namedtuple(
         'TRIGGER_IN',
         'TRIGGER_OUT',
 
+        'RESET_MASK',
+
         'START_MASK',
         'MEM_RESET_MASK',
         'MEM_WRITE_MASK',
@@ -79,9 +81,9 @@ class I2CController(BaseI2CController):
     def reset(self) -> None:
         """Reset the controller state machine and buffers."""
         logger.debug('reset I2C controller')
-        self._device.SetWireInValue(self._endpoints.RESET, 0x01, 0x01)
+        self._device.SetWireInValue(self._endpoints.RESET, 1 << self._endpoints.RESET_MASK)
         self._device.UpdateWireIns()
-        self._device.SetWireInValue(self._endpoints.RESET, 0x00, 0x01)
+        self._device.SetWireInValue(self._endpoints.RESET, 0x00)
         self._device.UpdateWireIns()
 
     def configure(self, n_starts: int, n_stops: int, preamble: Iterable[int]) -> None:
