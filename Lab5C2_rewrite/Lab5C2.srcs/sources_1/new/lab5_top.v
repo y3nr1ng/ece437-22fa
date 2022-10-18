@@ -83,11 +83,11 @@ module lab5_top(
     // input, 0x01, i2c_0 input data
     okWireIn     wi_01 (.okHE (okHE),                                               .ep_addr (8'h01), .ep_dataout (i_mem_data_0)); 
     // input, 0x02, i2c_1 input data
-    okWireIn     wi_02 (.okHE (okHE),                                               .ep_addr (8'h01), .ep_dataout (i_mem_data_1)); 
+    okWireIn     wi_02 (.okHE (okHE),                                               .ep_addr (8'h02), .ep_dataout (i_mem_data_1)); 
     // output, 0x20, i2c_0 output data
     okWireOut    wo_20 (.okHE (okHE), .okEH (okEHx[ 0*65 +: 65 ]),                  .ep_addr (8'h20), .ep_datain (o_mem_data_0));
     // output, 0x21, i2c_1 output data
-    okWireOut    wo_21 (.okHE (okHE), .okEH (okEHx[ 1*65 +: 65 ]),                  .ep_addr (8'h20), .ep_datain (o_mem_data_1));
+    okWireOut    wo_21 (.okHE (okHE), .okEH (okEHx[ 1*65 +: 65 ]),                  .ep_addr (8'h21), .ep_datain (o_mem_data_1));
     // trigger in, 0x40
     //  0: i2c_0 start
     //  1: i2c_0 mem start
@@ -120,7 +120,7 @@ module lab5_top(
     wire [31:0] o_mem_data_0;
        
     i2c_master #(
-        .CLK_DIVIDER (256)
+        .CLK_DIVIDER (512)
     ) i2c_master_inst_0 (
         .i_clk (clk_ti),
         
@@ -159,7 +159,7 @@ module lab5_top(
     wire [31:0] o_mem_data_1;
        
     i2c_master #(
-        .CLK_DIVIDER (256)
+        .CLK_DIVIDER (512)
     ) i2c_master_inst_1 (
         .i_clk (clk_ti),
         
