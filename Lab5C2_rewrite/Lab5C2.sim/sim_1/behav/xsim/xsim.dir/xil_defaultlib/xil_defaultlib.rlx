@@ -1,0 +1,27 @@
+0.6
+2019.1
+May 24 2019
+15:06:07
+U:/ECE437/Source/FrontPanelHDL/XEM7310-A75/okBTPipeIn.v,1525201188,verilog,,U:/ECE437/Source/FrontPanelHDL/XEM7310-A75/okBTPipeOut.v,,okBTPipeIn,,,,,,,,
+U:/ECE437/Source/FrontPanelHDL/XEM7310-A75/okBTPipeOut.v,1525201188,verilog,,U:/ECE437/Source/FrontPanelHDL/XEM7310-A75/okPipeIn.v,,okBTPipeOut,,,,,,,,
+U:/ECE437/Source/FrontPanelHDL/XEM7310-A75/okCoreHarness.v,1525201188,verilog,,U:/ECE437/Source/FrontPanelHDL/XEM7310-A75/okLibrary.v,,fifo_generator_v13_2_0;okCore;okCoreHarness;ok_tfifo;xpm_cdc_async_rst,,,,,,,,
+U:/ECE437/Source/FrontPanelHDL/XEM7310-A75/okLibrary.v,1525201188,verilog,,U:/ECE437/Source/FrontPanelHDL/XEM7310-A75/okTriggerIn.v,,okHost;okWireOR,,,,,,,,
+U:/ECE437/Source/FrontPanelHDL/XEM7310-A75/okLibrary.vhd,1525201188,vhdl,,,,frontpanel;okhost;okwireor,,,,,,,,
+U:/ECE437/Source/FrontPanelHDL/XEM7310-A75/okPipeIn.v,1525201188,verilog,,U:/ECE437/Source/FrontPanelHDL/XEM7310-A75/okPipeOut.v,,okPipeIn,,,,,,,,
+U:/ECE437/Source/FrontPanelHDL/XEM7310-A75/okPipeOut.v,1525201188,verilog,,U:/ECE437/Source/FrontPanelHDL/XEM7310-A75/okRegisterBridge.v,,okPipeOut,,,,,,,,
+U:/ECE437/Source/FrontPanelHDL/XEM7310-A75/okRegisterBridge.v,1525201188,verilog,,U:/ECE437/Source/Lab5C2_rewrite/Lab5C2.srcs/sim_1/new/24LC02B.v,,okRegisterBridge,,,,,,,,
+U:/ECE437/Source/FrontPanelHDL/XEM7310-A75/okTriggerIn.v,1525201188,verilog,,U:/ECE437/Source/FrontPanelHDL/XEM7310-A75/okTriggerOut.v,,okTriggerIn,,,,,,,,
+U:/ECE437/Source/FrontPanelHDL/XEM7310-A75/okTriggerOut.v,1525201188,verilog,,U:/ECE437/Source/FrontPanelHDL/XEM7310-A75/okWireIn.v,,okTriggerOut,,,,,,,,
+U:/ECE437/Source/FrontPanelHDL/XEM7310-A75/okWireIn.v,1525201188,verilog,,U:/ECE437/Source/FrontPanelHDL/XEM7310-A75/okWireOut.v,,okWireIn,,,,,,,,
+U:/ECE437/Source/FrontPanelHDL/XEM7310-A75/okWireOut.v,1525201188,verilog,,U:/ECE437/Source/Lab5C2_rewrite/Lab5C2.srcs/sources_1/new/sync_reset.v,,okWireOut,,,,,,,,
+U:/ECE437/Source/Lab5C2_rewrite/Lab5C2.sim/sim_1/behav/xsim/glbl.v,1558713910,verilog,,,,glbl,,,,,,,,
+U:/ECE437/Source/Lab5C2_rewrite/Lab5C2.srcs/sim_1/new/24LC02B.v,1665609994,verilog,,U:/ECE437/Source/Lab5C2_rewrite/Lab5C2.srcs/sim_1/new/i2c_master_tb.v,,M24LC02B,,,,,,,,
+U:/ECE437/Source/Lab5C2_rewrite/Lab5C2.srcs/sim_1/new/i2c_master_tb.v,1665610219,verilog,,,,i2c_master_tb,,,,,,,,
+U:/ECE437/Source/Lab5C2_rewrite/Lab5C2.srcs/sources_1/ip/ila_0/sim/ila_0.v,1665528574,verilog,,U:/ECE437/Source/Lab5C2_rewrite/Lab5C2.srcs/sources_1/new/dram64x8.v,,ila_0,,,,,,,,
+U:/ECE437/Source/Lab5C2_rewrite/Lab5C2.srcs/sources_1/new/clock_generator.v,1664315269,verilog,,U:/ECE437/Source/FrontPanelHDL/XEM7310-A75/okBTPipeIn.v,,clock_generator,,,,,,,,
+U:/ECE437/Source/Lab5C2_rewrite/Lab5C2.srcs/sources_1/new/dram64x8.v,1665440876,verilog,,U:/ECE437/Source/Lab5C2_rewrite/Lab5C2.srcs/sources_1/new/i2c_frame.v,,dram64x8,,,,,,,,
+U:/ECE437/Source/Lab5C2_rewrite/Lab5C2.srcs/sources_1/new/i2c_frame.v,1665775663,verilog,,U:/ECE437/Source/Lab5C2_rewrite/Lab5C2.srcs/sources_1/new/i2c_master.v,,i2c_frame,,,,,,,,
+U:/ECE437/Source/Lab5C2_rewrite/Lab5C2.srcs/sources_1/new/i2c_master.v,1665605729,verilog,,U:/ECE437/Source/Lab5C2_rewrite/Lab5C2.srcs/sources_1/new/mux8to1.v,,i2c_master,,,,,,,,
+U:/ECE437/Source/Lab5C2_rewrite/Lab5C2.srcs/sources_1/new/lab5_top.v,1665527334,verilog,,U:/ECE437/Source/Lab5C2_rewrite/Lab5C2.srcs/sources_1/new/clock_generator.v,,lab5_top,,,,,,,,
+U:/ECE437/Source/Lab5C2_rewrite/Lab5C2.srcs/sources_1/new/mux8to1.v,1665444548,verilog,,U:/ECE437/Source/FrontPanelHDL/XEM7310-A75/okCoreHarness.v,,mux8to1,,,,,,,,
+U:/ECE437/Source/Lab5C2_rewrite/Lab5C2.srcs/sources_1/new/sync_reset.v,1665446181,verilog,,U:/ECE437/Source/Lab5C2_rewrite/Lab5C2.srcs/sources_1/new/lab5_top.v,,sync_reset,,,,,,,,

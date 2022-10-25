@@ -12,14 +12,14 @@
    </db_ref_list>
    <zoom_setting>
       <ZoomStartTime time="0fs"></ZoomStartTime>
-      <ZoomEndTime time="105400000001fs"></ZoomEndTime>
-      <Cursor1Time time="1000000000000fs"></Cursor1Time>
+      <ZoomEndTime time="2500000000001fs"></ZoomEndTime>
+      <Cursor1Time time="2500000000000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="144"></NameColumnWidth>
-      <ValueColumnWidth column_width="60"></ValueColumnWidth>
+      <NameColumnWidth column_width="142"></NameColumnWidth>
+      <ValueColumnWidth column_width="58"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="18" />
+   <WVObjectSize size="21" />
    <wvobject fp_name="/i2c_master_tb/clk" type="logic">
       <obj_property name="ElementShortName">clk</obj_property>
       <obj_property name="ObjectShortName">clk</obj_property>
@@ -60,13 +60,13 @@
       <obj_property name="ElementShortName">memdout[7:0]</obj_property>
       <obj_property name="ObjectShortName">memdout[7:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/i2c_master_tb/i2c_sclk" type="logic">
-      <obj_property name="ElementShortName">i2c_sclk</obj_property>
-      <obj_property name="ObjectShortName">i2c_sclk</obj_property>
-   </wvobject>
    <wvobject fp_name="/i2c_master_tb/i2c_sdat" type="logic">
       <obj_property name="ElementShortName">i2c_sdat</obj_property>
       <obj_property name="ObjectShortName">i2c_sdat</obj_property>
+   </wvobject>
+   <wvobject fp_name="/i2c_master_tb/i2c_sclk" type="logic">
+      <obj_property name="ElementShortName">i2c_sclk</obj_property>
+      <obj_property name="ObjectShortName">i2c_sclk</obj_property>
    </wvobject>
    <wvobject fp_name="/i2c_master_tb/go" type="logic">
       <obj_property name="ElementShortName">go</obj_property>
@@ -90,8 +90,71 @@
       <obj_property name="ObjectShortName">state[31:0]</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/i2c_master_tb/dut/tokenizer/shift_count" type="logic">
-      <obj_property name="ElementShortName">shift_count</obj_property>
-      <obj_property name="ObjectShortName">shift_count</obj_property>
+   <wvobject fp_name="/i2c_master_tb/dut/tokenizer/shift_count" type="array">
+      <obj_property name="ElementShortName">shift_count[3:0]</obj_property>
+      <obj_property name="ObjectShortName">shift_count[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="group36" type="group">
+      <obj_property name="label">cmem</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject fp_name="/i2c_master_tb/dut/cmem/i_data" type="array">
+         <obj_property name="ElementShortName">i_data[7:0]</obj_property>
+         <obj_property name="ObjectShortName">i_data[7:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/i2c_master_tb/dut/cmem/i_we" type="logic">
+         <obj_property name="ElementShortName">i_we</obj_property>
+         <obj_property name="ObjectShortName">i_we</obj_property>
+      </wvobject>
+      <wvobject fp_name="/i2c_master_tb/dut/cmem/i_addr_a" type="array">
+         <obj_property name="ElementShortName">i_addr_a[5:0]</obj_property>
+         <obj_property name="ObjectShortName">i_addr_a[5:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/i2c_master_tb/dut/cmem/o_data_a" type="array">
+         <obj_property name="ElementShortName">o_data_a[7:0]</obj_property>
+         <obj_property name="ObjectShortName">o_data_a[7:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/i2c_master_tb/dut/cmem/i_addr_b" type="array">
+         <obj_property name="ElementShortName">i_addr_b[5:0]</obj_property>
+         <obj_property name="ObjectShortName">i_addr_b[5:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/i2c_master_tb/dut/cmem/o_data_b" type="array">
+         <obj_property name="ElementShortName">o_data_b[7:0]</obj_property>
+         <obj_property name="ObjectShortName">o_data_b[7:0]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="group37" type="group">
+      <obj_property name="label">rmem</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject fp_name="/i2c_master_tb/dut/rmem/i_data" type="array">
+         <obj_property name="ElementShortName">i_data[7:0]</obj_property>
+         <obj_property name="ObjectShortName">i_data[7:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/i2c_master_tb/dut/rmem/i_we" type="logic">
+         <obj_property name="ElementShortName">i_we</obj_property>
+         <obj_property name="ObjectShortName">i_we</obj_property>
+      </wvobject>
+      <wvobject fp_name="/i2c_master_tb/dut/rmem/i_addr_a" type="array">
+         <obj_property name="ElementShortName">i_addr_a[5:0]</obj_property>
+         <obj_property name="ObjectShortName">i_addr_a[5:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/i2c_master_tb/dut/rmem/o_data_a" type="array">
+         <obj_property name="ElementShortName">o_data_a[7:0]</obj_property>
+         <obj_property name="ObjectShortName">o_data_a[7:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/i2c_master_tb/dut/rmem/i_addr_b" type="array">
+         <obj_property name="ElementShortName">i_addr_b[5:0]</obj_property>
+         <obj_property name="ObjectShortName">i_addr_b[5:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/i2c_master_tb/dut/rmem/o_data_b" type="array">
+         <obj_property name="ElementShortName">o_data_b[7:0]</obj_property>
+         <obj_property name="ObjectShortName">o_data_b[7:0]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="/i2c_master_tb/dut/tokenizer/shift_reg" type="array">
+      <obj_property name="ElementShortName">shift_reg[7:0]</obj_property>
+      <obj_property name="ObjectShortName">shift_reg[7:0]</obj_property>
+      <obj_property name="isExpanded"></obj_property>
    </wvobject>
 </wave_config>

@@ -1,0 +1,29 @@
+# compile verilog/system verilog design source files
+verilog xil_defaultlib  \
+"../../../../Lab5C2.srcs/sources_1/ip/ila_0/sim/ila_0.v" \
+"../../../../Lab5C2.srcs/sources_1/new/dram64x8.v" \
+"../../../../Lab5C2.srcs/sources_1/new/i2c_frame.v" \
+"../../../../Lab5C2.srcs/sources_1/new/i2c_master.v" \
+"../../../../Lab5C2.srcs/sources_1/new/mux8to1.v" \
+"../../../../../FrontPanelHDL/XEM7310-A75/okCoreHarness.v" \
+"../../../../../FrontPanelHDL/XEM7310-A75/okLibrary.v" \
+"../../../../../FrontPanelHDL/XEM7310-A75/okTriggerIn.v" \
+"../../../../../FrontPanelHDL/XEM7310-A75/okTriggerOut.v" \
+"../../../../../FrontPanelHDL/XEM7310-A75/okWireIn.v" \
+"../../../../../FrontPanelHDL/XEM7310-A75/okWireOut.v" \
+"../../../../Lab5C2.srcs/sources_1/new/sync_reset.v" \
+"../../../../Lab5C2.srcs/sources_1/new/lab5_top.v" \
+"../../../../Lab5C2.srcs/sources_1/new/clock_generator.v" \
+"../../../../../FrontPanelHDL/XEM7310-A75/okBTPipeIn.v" \
+"../../../../../FrontPanelHDL/XEM7310-A75/okBTPipeOut.v" \
+"../../../../../FrontPanelHDL/XEM7310-A75/okPipeIn.v" \
+"../../../../../FrontPanelHDL/XEM7310-A75/okPipeOut.v" \
+"../../../../../FrontPanelHDL/XEM7310-A75/okRegisterBridge.v" \
+"../../../../Lab5C2.srcs/sim_1/new/24LC02B.v" \
+"../../../../Lab5C2.srcs/sim_1/new/i2c_master_tb.v" \
+
+# compile glbl module
+verilog xil_defaultlib "glbl.v"
+
+# Do not sort compile order
+nosort

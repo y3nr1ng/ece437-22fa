@@ -240,12 +240,36 @@ with I2CController(firmware_path=path) as dev:
     logger.info(f'serial={dev.serial_number}')
     
     dev_addr = 0x4B
-    reg_addr = 0x0B
-    n_value = 1
+    reg_addr = 0x00
+    n_value = 2
     print(f'{dev_addr << 1:08b}')
     data = dev.read_from(dev_addr, reg_addr, n_value)
     for i in range(n_value):
         print(f'[{reg_addr+i:02x}]={data[i]:02x}')
 
     logger.info('end')
+
+#%%
+def bytes_to_temperature(data, bits: int=13):
+    msb, lsb = data
+    data = (msb << 8 | lsb) >> (16 - bits)
+    return float(data) / 16
+ 
+path = "U:\\ECE437\\Source\\Lab5C2_rewrite\\Lab5C2.runs\\impl_1\\lab5_top.bit"
+#path = None
+with I2CController(firmware_path=path) as dev:
+    logger.info(f'serial={dev.serial_number}')
     
+    dev_addr = 0x4B
+    reg_addr = 0x00
+    n_value = 2
+    
+    logger.setLevel(logging.INFO)
+    try:
+        while True:
+            data = dev.read_from(dev_addr, reg_addr, n_value)
+            temperature = bytes_to_temperature(data)
+            print(f'{temperature:.4f} degC')
+    except KeyboardInterrupt:
+        print('.. Ctrl+C')
+        
