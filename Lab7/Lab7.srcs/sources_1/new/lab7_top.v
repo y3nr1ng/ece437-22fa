@@ -66,7 +66,7 @@ module lab7_top(
     reg clk_100khz;
     reg [23:0] clk_div_100k = 24'd0;
     always @(posedge sys_clk) begin        
-        if (clk_div_100k == 24'd1_000) begin
+        if (clk_div_100k == 24'd500) begin
             clk_100khz <= !clk_100khz;                       
             clk_div_100k <= 0;
         end else begin                        
@@ -136,6 +136,7 @@ module lab7_top(
     // trigger out, 0x60
     //  0: i2c_0 done
     //  1: i2c_1 done
+    //  2: pmod1 free
     okTriggerOut to_60 (.okHE (okHE), .okEH (okEHx[ 2*65 +: 65 ]), .ep_clk(clk_ti), .ep_addr (8'h60), .ep_trigger (to_60_wire));
     /*** ok endpoints ***/
     
@@ -235,6 +236,9 @@ module lab7_top(
     assign i_dir_wire = wi_03_wire[31];
     assign i_pulses_wire = wi_03_wire[23:0];
     
+    wire o_pmod1_busy;
+    assign to_60_wire[2] = !o_pmod1_busy;
+    
     drv8833 #(
         .PWM_CLK_DIVIDER (16'd250) 
     ) pmod_1 (
@@ -247,11 +251,11 @@ module lab7_top(
         .i_dir (i_dir_wire),
         .i_pulses (i_pulses_wire),
         
-        .o_busy (),
+        .o_busy (o_pmod1_busy),
         
         // wirings
-        .o_pmod_dir (PMOD_A1),
-        .o_pmod_en (PMOD_A2)
+        .o_pmod_dir (PMOD_A2),
+        .o_pmod_en (PMOD_A1)
     );
     /*** pmod 1 ***/
     

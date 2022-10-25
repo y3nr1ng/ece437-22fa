@@ -1,0 +1,10 @@
+pyproject.toml
+setup.py
+src/ece437/__init__.py
+src/ece437/i2c.py
+src/ece437/ok.py
+src/ece437/presets.py
+src/ece437.egg-info/PKG-INFO
+src/ece437.egg-info/SOURCES.txt
+src/ece437.egg-info/dependency_links.txt
+src/ece437.egg-info/top_level.txt

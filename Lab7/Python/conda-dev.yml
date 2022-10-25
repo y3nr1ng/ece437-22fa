@@ -1,0 +1,9 @@
+name: ece437
+
+dependencies:
+  - python=3.6
+  - ipykernel
+  - pip
+  # linter and style check
+  - black
+  - flake8

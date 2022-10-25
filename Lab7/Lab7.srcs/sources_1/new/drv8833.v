@@ -29,36 +29,18 @@ module drv8833 #(
     input       i_rst,
     input       i_start,
     
-    input       i_dir,
-    input [23:0] i_pulses,
+    input           i_dir,
+    input [23:0]    i_pulses,
     
-    output reg  o_busy,
+    output reg      o_busy,
     
     // wirings
-    output      o_pmod_dir,
-    output reg  o_pmod_en
+    output          o_pmod_dir,
+    output reg      o_pmod_en
 );
     
     /*** tick generator ***/
     reg [15:0] pwm_counter = 0;
-    wire pwm_tick;
-    
-    always @(posedge i_clk_100khz) begin
-        if (i_rst) begin
-            pwm_counter <= 0;
-        end
-        else begin
-            if (pwm_counter == PWM_CLK_DIVIDER) begin
-                pwm_counter <= 0;
-            end
-            else begin
-                pwm_counter <= pwm_counter + 1'b1;
-            end
-        end
-    end
-    
-    assign pwm_tick = (pwm_counter == PWM_CLK_DIVIDER);
-    /*** tick generator ***/
     
     /*** main fsm ***/
     integer state;
@@ -84,11 +66,9 @@ module drv8833 #(
             o_pmod_en <= 0;
         end 
         else begin
-            start <= i_start;
-            
             case (state)
                 S_IDLE: begin
-                    if (start) begin
+                    if (i_start) begin
                         state <= S_START;
                     end
                 end
@@ -104,20 +84,23 @@ module drv8833 #(
                     o_busy <= 1;
                     
                     pulse_counter <= 0;
+                    pwm_counter <= 0;
                 end
                 
                 S_RUN: begin
-                    if (pwm_tick) begin
-                        o_pmod_en <= !o_pmod_en;
-                        
-                        if (o_pmod_en) begin
-                            if (pulse_counter < pulses) begin
-                                pulse_counter <= pulse_counter + 1'b1;
-                            end 
-                            else begin 
-                                state <= S_STOP;
-                            end
+                    if (pulse_counter < pulses) begin             
+                        if (pwm_counter == PWM_CLK_DIVIDER) begin
+                            pwm_counter <= 0;
+                            
+                            pulse_counter <= pulse_counter + 1'b1;
+                            o_pmod_en <= !o_pmod_en;
                         end
+                        else begin
+                            pwm_counter <= pwm_counter + 1'b1;
+                        end
+                    end 
+                    else begin 
+                        state <= S_STOP;
                     end
                 end
                 

@@ -1,7 +1,7 @@
 Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
 -------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2019.1 (win64) Build 2552052 Fri May 24 14:49:42 MDT 2019
-| Date         : Tue Oct 25 14:32:00 2022
+| Date         : Tue Oct 25 16:30:59 2022
 | Host         : ECEB-4022-07 running 64-bit major release  (build 9200)
 | Command      : report_utilization -file lab7_top_utilization_placed.rpt -pb lab7_top_utilization_placed.pb
 | Design       : lab7_top
@@ -31,13 +31,13 @@ Table of Contents
 +----------------------------+------+-------+-----------+-------+
 |          Site Type         | Used | Fixed | Available | Util% |
 +----------------------------+------+-------+-----------+-------+
-| Slice LUTs                 | 1281 |     0 |     47200 |  2.71 |
-|   LUT as Logic             | 1201 |     0 |     47200 |  2.54 |
+| Slice LUTs                 | 1265 |     0 |     47200 |  2.68 |
+|   LUT as Logic             | 1185 |     0 |     47200 |  2.51 |
 |   LUT as Memory            |   80 |     0 |     19000 |  0.42 |
 |     LUT as Distributed RAM |   80 |     0 |           |       |
 |     LUT as Shift Register  |    0 |     0 |           |       |
-| Slice Registers            | 1219 |     0 |     94400 |  1.29 |
-|   Register as Flip Flop    | 1219 |     0 |     94400 |  1.29 |
+| Slice Registers            | 1220 |     0 |     94400 |  1.29 |
+|   Register as Flip Flop    | 1220 |     0 |     94400 |  1.29 |
 |   Register as Latch        |    0 |     0 |     94400 |  0.00 |
 | F7 Muxes                   |   12 |     0 |     31700 |  0.04 |
 | F8 Muxes                   |    0 |     0 |     15850 |  0.00 |
@@ -57,7 +57,7 @@ Table of Contents
 | 0     |            _ |       Reset |            - |
 | 0     |          Yes |           - |            - |
 | 37    |          Yes |           - |          Set |
-| 258   |          Yes |           - |        Reset |
+| 259   |          Yes |           - |        Reset |
 | 24    |          Yes |         Set |            - |
 | 995   |          Yes |       Reset |            - |
 +-------+--------------+-------------+--------------+
@@ -69,24 +69,24 @@ Table of Contents
 +--------------------------------------------+------+-------+-----------+-------+
 |                  Site Type                 | Used | Fixed | Available | Util% |
 +--------------------------------------------+------+-------+-----------+-------+
-| Slice                                      |  469 |     0 |     15850 |  2.96 |
-|   SLICEL                                   |  285 |     0 |           |       |
-|   SLICEM                                   |  184 |     0 |           |       |
-| LUT as Logic                               | 1201 |     0 |     47200 |  2.54 |
+| Slice                                      |  484 |     0 |     15850 |  3.05 |
+|   SLICEL                                   |  294 |     0 |           |       |
+|   SLICEM                                   |  190 |     0 |           |       |
+| LUT as Logic                               | 1185 |     0 |     47200 |  2.51 |
 |   using O5 output only                     |    2 |       |           |       |
-|   using O6 output only                     |  997 |       |           |       |
-|   using O5 and O6                          |  202 |       |           |       |
+|   using O6 output only                     |  980 |       |           |       |
+|   using O5 and O6                          |  203 |       |           |       |
 | LUT as Memory                              |   80 |     0 |     19000 |  0.42 |
 |   LUT as Distributed RAM                   |   80 |     0 |           |       |
 |     using O5 output only                   |    0 |       |           |       |
 |     using O6 output only                   |   64 |       |           |       |
 |     using O5 and O6                        |   16 |       |           |       |
 |   LUT as Shift Register                    |    0 |     0 |           |       |
-| Slice Registers                            | 1219 |     0 |     94400 |  1.29 |
-|   Register driven from within the Slice    |  772 |       |           |       |
-|   Register driven from outside the Slice   |  447 |       |           |       |
-|     LUT in front of the register is unused |  211 |       |           |       |
-|     LUT in front of the register is used   |  236 |       |           |       |
+| Slice Registers                            | 1220 |     0 |     94400 |  1.29 |
+|   Register driven from within the Slice    |  766 |       |           |       |
+|   Register driven from outside the Slice   |  454 |       |           |       |
+|     LUT in front of the register is unused |  215 |       |           |       |
+|     LUT in front of the register is used   |  239 |       |           |       |
 | Unique Control Sets                        |   95 |       |     15850 |  0.60 |
 +--------------------------------------------+------+-------+-----------+-------+
 * Note: Available Control Sets calculated as Slice Registers / 8, Review the Control Sets Report for more information regarding control sets.
@@ -189,14 +189,14 @@ Table of Contents
 |  Ref Name  | Used | Functional Category |
 +------------+------+---------------------+
 | FDRE       |  995 |        Flop & Latch |
-| LUT6       |  591 |                 LUT |
-| LUT4       |  284 |                 LUT |
-| FDCE       |  258 |        Flop & Latch |
-| LUT5       |  212 |                 LUT |
-| LUT3       |  150 |                 LUT |
+| LUT6       |  574 |                 LUT |
+| LUT4       |  282 |                 LUT |
+| FDCE       |  259 |        Flop & Latch |
+| LUT5       |  219 |                 LUT |
+| LUT3       |  146 |                 LUT |
 | LUT2       |  106 |                 LUT |
 | CARRY4     |   73 |          CarryLogic |
-| LUT1       |   60 |                 LUT |
+| LUT1       |   61 |                 LUT |
 | RAMD64E    |   48 |  Distributed Memory |
 | OBUFT      |   45 |                  IO |
 | IBUF       |   42 |                  IO |
