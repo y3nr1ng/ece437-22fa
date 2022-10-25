@@ -37,6 +37,8 @@ I2CControllerEndpoints = namedtuple(
         'TRIGGER_IN',
         'TRIGGER_OUT',
 
+        'RESET_MASK',
+
         'START_MASK',
         'MEM_RESET_MASK',
         'MEM_WRITE_MASK',
@@ -79,9 +81,9 @@ class I2CController(BaseI2CController):
     def reset(self) -> None:
         """Reset the controller state machine and buffers."""
         logger.debug('reset I2C controller')
-        self._device.SetWireInValue(self._endpoints.RESET, 0x01, 0x01)
+        self._device.SetWireInValue(self._endpoints.RESET, 1 << self._endpoints.RESET_MASK)
         self._device.UpdateWireIns()
-        self._device.SetWireInValue(self._endpoints.RESET, 0x00, 0x01)
+        self._device.SetWireInValue(self._endpoints.RESET, 0x00)
         self._device.UpdateWireIns()
 
     def configure(self, n_starts: int, n_stops: int, preamble: Iterable[int]) -> None:
@@ -109,11 +111,14 @@ class I2CController(BaseI2CController):
             reg_addr (int):
             reg_value (int or Iterable[int]): 
         """
+        dev_addr <<= 1
+
         preamble = [
             dev_addr & 0xfe,    # device address (W)
             reg_addr,
         ]
         self.configure(0x00, 0x00, preamble)
+
         self.transmit(reg_value)
 
     def read_from(self, dev_addr: int, reg_addr: int, length: int) -> Iterable[int]:
@@ -203,6 +208,7 @@ class I2CController(BaseI2CController):
 
     def _write_memory(self, buffer: Iterable[int]) -> None:
         for byte in buffer:
+            logger.debug(f'.. [WI] {byte:02x}')
             self._device.SetWireInValue(self._endpoints.DATA_IN, byte, 0x00ff)
             self._device.UpdateWireIns()
             self._device.ActivateTriggerIn(self._endpoints.TRIGGER_IN, self._endpoints.MEM_WRITE_MASK)
