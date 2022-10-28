@@ -114,7 +114,7 @@ module lab7_top(
     okWireIn     wi_02 (.okHE (okHE),                                               .ep_addr (8'h02), .ep_dataout (i_mem_data_1)); 
     // input, 0x03, pmod1
     //  [31]:    dir
-    //  [30..0]: pulse
+    //  [23..0]: pulse
     okWireIn     wi_03 (.okHE (okHE),                                               .ep_addr (8'h03), .ep_dataout (wi_03_wire)); 
     // output, 0x20, i2c_0 output data
     okWireOut    wo_20 (.okHE (okHE), .okEH (okEHx[ 0*65 +: 65 ]),                  .ep_addr (8'h20), .ep_datain (o_mem_data_0));
