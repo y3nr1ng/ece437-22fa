@@ -1,0 +1,6 @@
+# compile vhdl design source files
+vhdl xil_defaultlib  \
+"../../../../../FrontPanelHDL/XEM7310-A75/okLibrary.vhd" \
+
+# Do not sort compile order
+nosort

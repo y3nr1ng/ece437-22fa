@@ -1,0 +1,12 @@
+0.6
+2019.1
+May 24 2019
+15:06:07
+C:/ytliu2/ECE437/FrontPanelHDL/XEM7310-A75/okCoreHarness.v,1665778912,verilog,,,,fifo_generator_v13_2_0;okCore;okCoreHarness;ok_tfifo;xpm_cdc_async_rst,,,,,,,,
+C:/ytliu2/ECE437/FrontPanelHDL/XEM7310-A75/okLibrary.vhd,1665778912,vhdl,,,,frontpanel;okhost;okwireor,,,,,,,,
+C:/ytliu2/ECE437/Lab8/Lab8.sim/sim_1/behav/xsim/glbl.v,1558713910,verilog,,,,glbl,,,,,,,,
+C:/ytliu2/ECE437/Lab8/Lab8.srcs/sim_1/new/lab8_top_tb.v,1667339537,verilog,,,,spi_master_tb,,,,,,,,
+C:/ytliu2/ECE437/Lab8/Lab8.srcs/sources_1/new/dram64x8.v,1667330982,verilog,,C:/ytliu2/ECE437/Lab8/Lab8.srcs/sources_1/new/mux8to1.v,,dram64x8,,,,,,,,
+C:/ytliu2/ECE437/Lab8/Lab8.srcs/sources_1/new/mux8to1.v,1665444548,verilog,,C:/ytliu2/ECE437/Lab8/Lab8.srcs/sources_1/new/spi_frame.v,,mux8to1,,,,,,,,
+C:/ytliu2/ECE437/Lab8/Lab8.srcs/sources_1/new/spi_frame.v,1667342178,verilog,,C:/ytliu2/ECE437/Lab8/Lab8.srcs/sources_1/new/spi_master.v,,spi_frame,,,,,,,,
+C:/ytliu2/ECE437/Lab8/Lab8.srcs/sources_1/new/spi_master.v,1667333940,verilog,,C:/ytliu2/ECE437/Lab8/Lab8.srcs/sim_1/new/lab8_top_tb.v,,spi_master,,,,,,,,

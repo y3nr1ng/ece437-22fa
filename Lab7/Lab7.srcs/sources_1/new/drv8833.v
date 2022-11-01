@@ -21,99 +21,134 @@
 
 
 module drv8833 #(
-    parameter PWM_CLK_DIVIDER = 16'd0 
+    parameter PULSE_CLK_DIVIDER = 16'd250 
 )(
-    input       i_clk_100khz, 
+    input               i_clk_100k, 
     
     // control
-    input       i_rst,
-    input       i_start,
+    input               i_rst,
+    input               i_start,
     
-    input           i_dir,
-    input [23:0]    i_pulses,
+    input               i_dir,
+    input       [23:0]  i_pulses,
     
-    output reg      o_busy,
+    output              o_busy,
     
     // wirings
-    output          o_pmod_dir,
-    output reg      o_pmod_en
+    output              o_pmod_dir,
+    output              o_pmod_en,
+    
+    output  [3:0]       debug_led
 );
     
-    /*** tick generator ***/
-    reg [15:0] pwm_counter = 0;
+    /*** ila ***/
+    ila_0 ila_0_inst (
+        .clk (i_clk_100k),
+        .probe0 ({ i_clk_100k, i_rst, i_start, i_dir, i_pulses, o_busy, o_pmod_dir, o_pmod_en }),
+        .probe1 ({ pmod_en_counter, counter, state })
+    );
+    /*** ila ***/
+    
+    /*** en pulse generator ***/
+    reg [15:0]  pmod_en_counter = 0;
+    reg         pmod_en = 0;
+    
+    always @(posedge i_clk_100k) begin
+        if (i_rst) begin
+            pmod_en_counter <= 0;
+        end
+        else begin
+            if (pmod_en_counter == PULSE_CLK_DIVIDER) begin
+                pmod_en_counter <= 0;
+                pmod_en <= ~pmod_en;
+            end
+            else begin
+                pmod_en_counter <= pmod_en_counter + 1'b1;
+            end
+        end
+    end
+    
+    reg pmod_oe = 0; // this is what we want to control 
+    assign o_pmod_en = (pmod_oe & !i_rst) & pmod_en;
+    
+    wire pmod_en_tick;
+    assign pmod_en_tick = (pmod_en_counter == PULSE_CLK_DIVIDER) & o_pmod_en;
+    
+    assign debug_led[0] = pmod_en;
+    /*** en pulse generator ***/
+    
+    /*** en counter ***/
+    reg         clear = 0;
+    reg [23:0]  counter = 0;
+    
+    always @(posedge i_clk_100k) begin
+        if (clear) begin
+            counter <= 0;
+        end
+        else begin
+            if (pmod_en_tick) begin
+                counter <= counter + 1'b1;
+            end
+        end
+    end
+    /*** en counter ***/
+    
+    /*** dir control ***/
+    reg dir = 0;
+    assign o_pmod_dir = dir;
+    
+    assign debug_led[1] = dir;
+    /*** dir control ***/
     
     /*** main fsm ***/
     integer state;
     parameter S_IDLE = 0,
-              S_START = 1,
-              S_RUN = 2, 
-              S_STOP = 3;
+              S_PREPARE = 1,
+              S_RUN = 2;
     
-    reg dir = 0; 
-    assign o_pmod_dir = dir;
+    reg [23:0] target_counter = 0;
     
-    reg start = 0;
-    
-    reg [23:0]  pulses = 0;
-    reg [23:0]  pulse_counter = 0;
-    
-    always @(posedge i_clk_100khz) begin
+    always @(posedge i_clk_100k) begin
         if (i_rst) begin 
             state <= S_IDLE;
-            
-            o_busy <= 0;
-            
-            o_pmod_en <= 0;
         end 
         else begin
+            clear <= 0;
+            
             case (state)
                 S_IDLE: begin
                     if (i_start) begin
-                        state <= S_START;
+                        state <= S_PREPARE;
                     end
                 end
                 
-                S_START: begin
+                S_PREPARE: begin
                     state <= S_RUN;
                     
+                    // set direction
                     dir <= i_dir;
-                    pulses <= i_pulses;
                     
-                    o_pmod_en <= 0;
-                    
-                    o_busy <= 1;
-                    
-                    pulse_counter <= 0;
-                    pwm_counter <= 0;
+                    // set enable pulses to wait for
+                    clear <= 1;
+                    target_counter <= i_pulses;
                 end
                 
                 S_RUN: begin
-                    if (pulse_counter < pulses) begin             
-                        if (pwm_counter == PWM_CLK_DIVIDER) begin
-                            pwm_counter <= 0;
-                            
-                            pulse_counter <= pulse_counter + 1'b1;
-                            o_pmod_en <= !o_pmod_en;
-                        end
-                        else begin
-                            pwm_counter <= pwm_counter + 1'b1;
-                        end
-                    end 
-                    else begin 
-                        state <= S_STOP;
+                    if (counter >= target_counter) begin
+                        state <= S_IDLE;
+                        
+                        pmod_oe <= 0;
                     end
-                end
-                
-                S_STOP: begin
-                    state <= S_IDLE;
-                    
-                    o_pmod_en <= 0;
-                    
-                    o_busy <= 0;
+                    else begin
+                        pmod_oe <= 1;
+                    end
                 end
             endcase
         end
     end
+    
+    assign o_busy = (state != S_IDLE);
+    assign debug_led[2] = o_busy;
     /*** main fsm ***/
     
 endmodule

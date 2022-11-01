@@ -46,7 +46,8 @@ module lab7_top(
     output          PMOD_A2,
     
     // led debug
-    output [7:0]    led
+    output [7:0]    led,    // xem
+    output [3:0]    s_LED   // sensor board
 );
     
     /*** adt7420 address ***/
@@ -55,7 +56,7 @@ module lab7_top(
     /*** adt7420 address ***/
     
     /*** reference clock ***/
-    wire sys_clk; // 100 MHz
+    wire sys_clk; // 200 MHz
     IBUFGDS osc_clk(
         .O (sys_clk),
         .I (sys_clkp),
@@ -63,14 +64,14 @@ module lab7_top(
     );  
     
     // 100 kHz reference
-    reg clk_100khz;
-    reg [23:0] clk_div_100k = 24'd0;
+    reg ref_clk_100k;
+    reg [23:0] ref_clk_100k_counter = 24'd0;
     always @(posedge sys_clk) begin        
-        if (clk_div_100k == 24'd500) begin
-            clk_100khz <= !clk_100khz;                       
-            clk_div_100k <= 0;
+        if (ref_clk_100k_counter == 24'd1_000) begin
+            ref_clk_100k <= !ref_clk_100k;  // 200M / 1000 / 2 = 100k                   
+            ref_clk_100k_counter <= 0;
         end else begin                        
-            clk_div_100k <= clk_div_100k + 1'b1;
+            ref_clk_100k_counter <= ref_clk_100k_counter + 1'b1;
         end
     end 
     /*** reference clock ***/
@@ -225,12 +226,12 @@ module lab7_top(
     assign reset_async_2 = wi_00_wire[2];
     
     sync_reset sync_reset_inst_2 (
-        .i_clk (clk_100khz),
+        .i_clk (ref_clk_100k),
         .i_async_reset (reset_async_2),
         .o_sync_reset (reset_sys_clk_2)
     );
     
-    wire i_dir_wire;
+    wire        i_dir_wire;
     wire [23:0] i_pulses_wire;
    
     assign i_dir_wire = wi_03_wire[31];
@@ -239,10 +240,8 @@ module lab7_top(
     wire o_pmod1_busy;
     assign to_60_wire[2] = !o_pmod1_busy;
     
-    drv8833 #(
-        .PWM_CLK_DIVIDER (16'd250) 
-    ) pmod_1 (
-        .i_clk_100khz (clk_100khz), 
+    drv8833 pmod_1 (
+        .i_clk_100k (ref_clk_100k), 
         
         // control
         .i_rst (reset_sys_clk_2),
@@ -255,7 +254,8 @@ module lab7_top(
         
         // wirings
         .o_pmod_dir (PMOD_A2),
-        .o_pmod_en (PMOD_A1)
+        .o_pmod_en (PMOD_A1),
+        .debug_led (s_LED)
     );
     /*** pmod 1 ***/
     
