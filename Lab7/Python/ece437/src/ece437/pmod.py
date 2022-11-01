@@ -51,7 +51,7 @@ class PMOD:
         pass
 
     def reset(self):
-        logger.debug('rest pmod')
+        logger.debug('reset pmod')
         self._device.SetWireInValue(self._endpoints.RESET, 1 << self._endpoints.RESET_MASK)
         self._device.UpdateWireIns()
         self._device.SetWireInValue(self._endpoints.RESET, 0x00)

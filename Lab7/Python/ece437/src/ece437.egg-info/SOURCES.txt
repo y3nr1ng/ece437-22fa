@@ -3,6 +3,7 @@ setup.py
 src/ece437/__init__.py
 src/ece437/i2c.py
 src/ece437/ok.py
+src/ece437/pmod.py
 src/ece437/presets.py
 src/ece437.egg-info/PKG-INFO
 src/ece437.egg-info/SOURCES.txt

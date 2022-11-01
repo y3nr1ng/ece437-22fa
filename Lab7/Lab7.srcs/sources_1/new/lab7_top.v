@@ -55,30 +55,23 @@ module lab7_top(
     assign ADT7420_A1 = 1;
     /*** adt7420 address ***/
     
-    /*** reference clock ***/
-    wire sys_clk; // 200 MHz
-    IBUFGDS osc_clk(
-        .O (sys_clk),
-        .I (sys_clkp),
-        .IB (sys_clkn)
-    );  
-    
-    // 100 kHz reference
-    reg ref_clk_100k;
-    reg [23:0] ref_clk_100k_counter = 24'd0;
-    always @(posedge sys_clk) begin        
-        if (ref_clk_100k_counter == 24'd1_000) begin
-            ref_clk_100k <= !ref_clk_100k;  // 200M / 1000 / 2 = 100k                   
-            ref_clk_100k_counter <= 0;
-        end else begin                        
-            ref_clk_100k_counter <= ref_clk_100k_counter + 1'b1;
-        end
-    end 
-    /*** reference clock ***/
+    /*** referenc clock ***/
+    wire sys_clk;
+    wire ref_clk_25M;
+    wire ref_clk_100k;
+
+    ref_clk ref_clk_inst (
+        .sys_clkn (sys_clkn),
+        .sys_clkp (sys_clkp),
+
+        .sys_clk (sys_clk),
+
+        .clk_25M (ref_clk_25M),
+        .clk_100k (ref_clk_100k)
+    );
+    /*** referenc clock ***/
     
     /*** ok interface ***/
-    wire clk_ti;
-    
     wire [112:0]    okHE;
     wire [64:0]     okEH;
     
@@ -86,7 +79,7 @@ module lab7_top(
         .okUH (okUH),
         .okHU (okHU),
         .okUHU (okUHU),
-        .okClk (clk_ti),
+        .okClk (),
         .okAA (okAA),
         .okHE (okHE),
         .okEH (okEH)
@@ -130,15 +123,15 @@ module lab7_top(
     //  5: i2c_1 mem start
     //  6: i2c_1 mem write
     //  7: i2c_1 mem read
-    okTriggerIn  ti_40 (.okHE (okHE), .ep_clk(clk_ti),                              .ep_addr (8'h40), .ep_trigger (ti_40_wire));
+    okTriggerIn  ti_40 (.okHE (okHE), .ep_clk(ref_clk_100k),                              .ep_addr (8'h40), .ep_trigger (ti_40_wire));
     // trigger in, 0x41
     //  0: pmod1 start
-    okTriggerIn  ti_41 (.okHE (okHE), .ep_clk(clk_ti),                              .ep_addr (8'h41), .ep_trigger (ti_41_wire));
+    okTriggerIn  ti_41 (.okHE (okHE), .ep_clk(ref_clk_100k),                              .ep_addr (8'h41), .ep_trigger (ti_41_wire));
     // trigger out, 0x60
     //  0: i2c_0 done
     //  1: i2c_1 done
     //  2: pmod1 free
-    okTriggerOut to_60 (.okHE (okHE), .okEH (okEHx[ 2*65 +: 65 ]), .ep_clk(clk_ti), .ep_addr (8'h60), .ep_trigger (to_60_wire));
+    okTriggerOut to_60 (.okHE (okHE), .okEH (okEHx[ 2*65 +: 65 ]), .ep_clk(ref_clk_100k), .ep_addr (8'h60), .ep_trigger (to_60_wire));
     /*** ok endpoints ***/
     
     /*** i2c_0 ***/
@@ -148,7 +141,7 @@ module lab7_top(
     assign reset_async_0 = wi_00_wire[0];
     
     sync_reset sync_reset_inst_0 (
-        .i_clk (clk_ti),
+        .i_clk (ref_clk_100k),
         .i_async_reset (reset_async_0),
         .o_sync_reset (reset_clk_ti_0)
     );
@@ -159,7 +152,7 @@ module lab7_top(
     i2c_master #(
         .CLK_DIVIDER (512)
     ) i2c_master_inst_0 (
-        .i_clk (clk_ti),
+        .i_clk (ref_clk_100k),
         
         // controls
         .i_rst (reset_clk_ti_0),
@@ -167,7 +160,7 @@ module lab7_top(
         .o_done (to_60_wire[0]),
         
         // data
-        .i_mem_clk (clk_ti),
+        .i_mem_clk (ref_clk_100k),
         .i_mem_start (ti_40_wire[1]),
         .i_mem_write (ti_40_wire[2]),
         .i_mem_read (ti_40_wire[3]),
@@ -187,7 +180,7 @@ module lab7_top(
     assign reset_async_1 = wi_00_wire[1];
     
     sync_reset sync_reset_inst_1 (
-        .i_clk (clk_ti),
+        .i_clk (ref_clk_100k),
         .i_async_reset (reset_async_1),
         .o_sync_reset (reset_clk_ti_1)
     );
@@ -198,7 +191,7 @@ module lab7_top(
     i2c_master #(
         .CLK_DIVIDER (512)
     ) i2c_master_inst_1 (
-        .i_clk (clk_ti),
+        .i_clk (ref_clk_100k),
         
         // controls
         .i_rst (reset_clk_ti_1),
@@ -206,7 +199,7 @@ module lab7_top(
         .o_done (to_60_wire[1]),
         
         // data
-        .i_mem_clk (clk_ti),
+        .i_mem_clk (ref_clk_100k),
         .i_mem_start (ti_40_wire[5]),
         .i_mem_write (ti_40_wire[6]),
         .i_mem_read (ti_40_wire[7]),
@@ -240,7 +233,9 @@ module lab7_top(
     wire o_pmod1_busy;
     assign to_60_wire[2] = !o_pmod1_busy;
     
-    drv8833 pmod_1 (
+    drv8833 #(
+        .PULSE_CLK_DIVIDER (250)
+    ) pmod_1 (
         .i_clk_100k (ref_clk_100k), 
         
         // control

@@ -564,26 +564,70 @@
                     },
                     {
                         "id": 30,
-                        "name": "ref_clk_100k_reg_n_0_BUFG",
+                        "name": "ref_clk_100k_BUFG",
                         "state_reg": [
                             {
-                                "name": "pmod_1/ila_0_inst/inst/ila_core_inst/u_ila_regs/CNT.CNT_SRL[0].cnt_srl_reg/current_state_reg[0]",
+                                "name": "i2c_master_inst_0/FSM_sequential_state_reg[0]",
                                 "states": [
                                     {
-                                        "name": "REG",
-                                        "val": "0010"
+                                        "name": "S_PAYLOAD",
+                                        "val": "1011"
                                     },
                                     {
-                                        "name": "P2S",
+                                        "name": "S_PREAMBLE_STARTWAIT",
+                                        "val": "0110"
+                                    },
+                                    {
+                                        "name": "S_PREAMBLE_START",
+                                        "val": "0101"
+                                    },
+                                    {
+                                        "name": "S_GET_PAYLOAD_LENGTH",
                                         "val": "0100"
                                     },
                                     {
-                                        "name": "IDLE",
+                                        "name": "S_GET_PREAMBLE_STOPS",
+                                        "val": "0011"
+                                    },
+                                    {
+                                        "name": "S_GET_PREAMBLE_STARTS",
+                                        "val": "0010"
+                                    },
+                                    {
+                                        "name": "S_PREAMBLE_TXWAIT",
+                                        "val": "1000"
+                                    },
+                                    {
+                                        "name": "S_PAYLOAD_STOPWAIT",
+                                        "val": "1110"
+                                    },
+                                    {
+                                        "name": "S_PREAMBLE_NEXT",
+                                        "val": "1010"
+                                    },
+                                    {
+                                        "name": "S_GET_PREAMBLE_LENGTH",
                                         "val": "0001"
                                     },
                                     {
-                                        "name": "S2P",
-                                        "val": "1000"
+                                        "name": "S_PREAMBLE_TX",
+                                        "val": "0111"
+                                    },
+                                    {
+                                        "name": "S_PAYLOAD_STOP",
+                                        "val": "1101"
+                                    },
+                                    {
+                                        "name": "S_PREAMBLE_STARTSTOPWAIT",
+                                        "val": "1001"
+                                    },
+                                    {
+                                        "name": "S_IDLE",
+                                        "val": "0000"
+                                    },
+                                    {
+                                        "name": "S_PAYLOAD_WAIT",
+                                        "val": "1100"
                                     }
                                 ]
                             }
