@@ -53,6 +53,7 @@ class OKFrontPanel:
         self._device_info = device_info
         
     def close(self):
+        self._device.Close()
         self._device_info = None
     
     @staticmethod
