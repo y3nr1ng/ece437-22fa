@@ -45,14 +45,6 @@ module i2c_frame #(
     inout               io_scl,
     inout               io_sda
 );
-    /*** ila ***/
-    ila_0 i2c_frame_ila (
-        .clk (i_clk),
-        .probe0 (state),
-        .probe1 ({ i_mosi_data, o_miso_data }),
-        .probe2 ({ i_clk, i_start, i_stop, i_write, i_read, o_done, i_ack_r, o_ack_w })
-    );
-    /*** ila ***/
     
     /*** signal direction ***/
     reg scl_oe;

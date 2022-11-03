@@ -234,7 +234,7 @@ module lab7_top(
     assign to_60_wire[2] = !o_pmod1_busy;
     
     drv8833 #(
-        .PULSE_CLK_DIVIDER (250)
+        .PULSE_CLK_DIVIDER (500)
     ) pmod_1 (
         .i_clk_100k (ref_clk_100k), 
         

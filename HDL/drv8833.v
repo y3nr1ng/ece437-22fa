@@ -41,14 +41,6 @@ module drv8833 #(
     output  [3:0]       debug_led
 );
     
-    /*** ila ***/
-    ila_0 ila_0_inst (
-        .clk (i_clk_100k),
-        .probe0 ({ i_clk_100k, i_rst, i_start, i_dir, i_pulses, o_busy, o_pmod_dir, o_pmod_en }),
-        .probe1 ({ pmod_en_counter, counter, state })
-    );
-    /*** ila ***/
-    
     /*** en pulse generator ***/
     reg [15:0]  pmod_en_counter = 0;
     reg         pmod_en = 0;
@@ -102,23 +94,32 @@ module drv8833 #(
     
     /*** main fsm ***/
     integer state;
-    parameter S_IDLE = 0,
-              S_PREPARE = 1,
-              S_RUN = 2;
+    localparam S_IDLE = 0,
+               S_PREPARE = 1,
+               S_RUN = 2;
     
     reg [23:0] target_counter = 0;
     
     always @(posedge i_clk_100k) begin
         if (i_rst) begin 
             state <= S_IDLE;
+         
+            // dir and en
+            dir <= 0;
+            pmod_oe <= 0;
+            
+            // en counter
+            clear <= 1;
+            target_counter <= 0;   
         end 
         else begin
-            clear <= 0;
+            //clear <= 0;
             
             case (state)
                 S_IDLE: begin
                     if (i_start) begin
                         state <= S_PREPARE;
+                        clear <= 1;
                     end
                 end
                 
@@ -129,7 +130,7 @@ module drv8833 #(
                     dir <= i_dir;
                     
                     // set enable pulses to wait for
-                    clear <= 1;
+                    clear <= 0;
                     target_counter <= i_pulses;
                 end
                 

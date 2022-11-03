@@ -1,0 +1,30 @@
+# compile verilog/system verilog design source files
+verilog xil_defaultlib  \
+"../../../../../HDL/dram64x8.v" \
+"../../../../../HDL/drv8833.v" \
+"../../../../../HDL/i2c/i2c_frame.v" \
+"../../../../../HDL/i2c/i2c_master.v" \
+"../../../../../HDL/mux8to1.v" \
+"../../../../../FrontPanelHDL/XEM7310-A75/okCoreHarness.v" \
+"../../../../../FrontPanelHDL/XEM7310-A75/okLibrary.v" \
+"../../../../../FrontPanelHDL/XEM7310-A75/okTriggerIn.v" \
+"../../../../../FrontPanelHDL/XEM7310-A75/okTriggerOut.v" \
+"../../../../../FrontPanelHDL/XEM7310-A75/okWireIn.v" \
+"../../../../../FrontPanelHDL/XEM7310-A75/okWireOut.v" \
+"../../../../../HDL/ref_clk.v" \
+"../../../../../HDL/sync_reset.v" \
+"../../../../Lab7.srcs/sources_1/new/lab7_top.v" \
+"../../../../../FrontPanelHDL/XEM7310-A75/okBTPipeIn.v" \
+"../../../../../FrontPanelHDL/XEM7310-A75/okBTPipeOut.v" \
+"../../../../../FrontPanelHDL/XEM7310-A75/okPipeIn.v" \
+"../../../../../FrontPanelHDL/XEM7310-A75/okPipeOut.v" \
+"../../../../../FrontPanelHDL/XEM7310-A75/okRegisterBridge.v" \
+"../../../../../HDL/spi/spi_frame.v" \
+"../../../../../HDL/spi/spi_master.v" \
+"../../../../Lab7.srcs/sim_1/new/drv8833_tb.v" \
+
+# compile glbl module
+verilog xil_defaultlib "glbl.v"
+
+# Do not sort compile order
+nosort
