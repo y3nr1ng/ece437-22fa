@@ -22,7 +22,7 @@
 
 
 module spi_frame #(
-    parameter CLK_DIVIDER = 16'd32
+    parameter CLK_DIVIDER = 16'd4
 ) (
     input               i_clk,
     
@@ -54,7 +54,7 @@ module spi_frame #(
             counter <= 0;
         end 
         else begin
-            if (counter == CLK_DIVIDER) begin 
+            if (counter == CLK_DIVIDER/2) begin 
                 counter <= 0;
             end
             else begin
@@ -63,7 +63,7 @@ module spi_frame #(
         end
     end
     
-    assign fsm_tick = (counter == CLK_DIVIDER);
+    assign fsm_tick = (counter == CLK_DIVIDER/2);
     /*** tick generator ***/
     
     /*** fsm for the frame ***/
@@ -215,7 +215,6 @@ module spi_frame #(
                 S_WRITE_3: begin
                     o_spi_clk <= 0;
                     if (shift_count > 0) begin
-                        //shift_count <= shift_count - 1'b1;
                         state <= S_WRITE_0;
                     end
                     else begin 
@@ -247,7 +246,6 @@ module spi_frame #(
                 S_READ_3: begin
                     o_spi_clk <= 0;
                     if (shift_count > 0) begin
-                        //shift_count <= shift_count - 1'b1;
                         state <= S_READ_0;
                     end 
                     else begin

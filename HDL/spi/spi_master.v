@@ -22,7 +22,7 @@
 
 
 module spi_master #(
-    parameter CLK_DIVIDER = 16'd32
+    parameter CLK_DIVIDER = 16'd4
 ) (
     input               i_clk,
     
@@ -129,45 +129,26 @@ module spi_master #(
     
     /*** fsm for the communication ***/
     integer state;
-    parameter S_IDLE = 0,
-              S_GET_PREAMBLE_LENGTH = 10,   // get transaction info
-              S_GET_PREAMBLE_STARTS = 11,
-              S_GET_PREAMBLE_STOPS = 12, 
-              S_GET_PAYLOAD_LENGTH = 13,
-              S_PREAMBLE_START = 20,        // preamble
-              S_PREAMBLE_STARTWAIT = 21,
-              S_PREAMBLE_TX = 22, 
-              S_PREAMBLE_TXWAIT = 23,
-              S_PREAMBLE_STARTSTOPWAIT = 24,
-              S_PREAMBLE_NEXT = 25,
-              S_PAYLOAD = 30,               // payload
-              S_PAYLOAD_WAIT = 31,
-              S_PAYLOAD_STOP = 32,
-              S_PAYLOAD_STOPWAIT = 33;
+    localparam S_IDLE = 0,
+               S_GET_PREAMBLE_LENGTH = 10,   // get transaction info
+               S_GET_PAYLOAD_LENGTH = 11,
+               S_PREAMBLE_START = 20,        // preamble
+               S_PREAMBLE_STARTWAIT = 21,
+               S_PREAMBLE_TX = 22, 
+               S_PREAMBLE_TXWAIT = 23,
+               S_PREAMBLE_NEXT = 25,
+               S_PAYLOAD = 30,               // payload
+               S_PAYLOAD_WAIT = 31,
+               S_PAYLOAD_STOP = 32,
+               S_PAYLOAD_STOPWAIT = 33;
              
     
     reg write_frame;
     
     reg [2:0]   preamble_length;
     reg [2:0]   preamble_count;
-    reg [7:0]   preamble_starts;
-    wire        preamble_start;
-    reg [7:0]   preamble_stops;
-    wire        preamble_stop;
     reg [6:0]   payload_length;
     reg [6:0]   payload_count;
-    
-    mux8to1 mux_starts (
-        .i_data (preamble_starts),
-        .sel (preamble_count),
-        .o_data (preamble_start) 
-    );
-    
-    mux8to1 mux_stops (
-        .i_data (preamble_stops),
-        .sel (preamble_count),
-        .o_data (preamble_stop)
-    );
     
     always @(posedge i_clk) begin
         if (i_rst) begin
@@ -189,8 +170,6 @@ module spi_master #(
             
             preamble_length <= 0;
             preamble_count <= 0;
-            preamble_starts <= 0;
-            preamble_stops <= 0;
             payload_length <= 0;
             payload_count <= 0;
         end 
@@ -216,19 +195,7 @@ module spi_master #(
                     preamble_length <= cmem_data[2:0];
                     write_frame <= ~cmem_data[7];
                     cmem_addr <= cmem_addr + 1'b1;
-                    state <= S_GET_PREAMBLE_STARTS; 
-                end
-                
-                S_GET_PREAMBLE_STARTS: begin
-                    preamble_starts <= cmem_data[7:0];
-                    cmem_addr <= cmem_addr + 1'b1;
-                    state <= S_GET_PREAMBLE_STOPS;
-                end
-                
-                S_GET_PREAMBLE_STOPS: begin
-                    preamble_stops <= cmem_data[7:0];
-                    cmem_addr <= cmem_addr + 1'b1;
-                    state <= S_GET_PAYLOAD_LENGTH;
+                    state <= S_GET_PAYLOAD_LENGTH; 
                 end
                 
                 S_GET_PAYLOAD_LENGTH: begin 
@@ -262,20 +229,6 @@ module spi_master #(
                 S_PREAMBLE_TXWAIT: begin
                     if (done) begin
                         preamble_count <= preamble_count + 1'b1;
-                        state <= S_PREAMBLE_NEXT;
-                        if (preamble_start) begin
-                            start <= 1;
-                            state <= S_PREAMBLE_STARTSTOPWAIT;
-                        end 
-                        else if (preamble_stop) begin
-                            stop <= 1;
-                            state <= S_PREAMBLE_STARTSTOPWAIT; 
-                        end
-                    end
-                end
-                
-                S_PREAMBLE_STARTSTOPWAIT: begin
-                    if (done) begin
                         state <= S_PREAMBLE_NEXT;
                     end
                 end
@@ -329,7 +282,7 @@ module spi_master #(
                     if (done) begin 
                         o_done <= 1;
                         state <= S_IDLE;
-                    end
+                    end 
                 end
                 /*** payload ***/
                 

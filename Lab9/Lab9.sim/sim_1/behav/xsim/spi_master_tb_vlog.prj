@@ -1,0 +1,12 @@
+# compile verilog/system verilog design source files
+verilog xil_defaultlib  --include "../../../../Lab9.srcs/sources_1/ip/ref_clk_pll" \
+"../../../../../HDL/dram64x8.v" \
+"../../../../../HDL/spi/spi_frame.v" \
+"../../../../../HDL/spi/spi_master.v" \
+"../../../../Lab9.srcs/sim_1/new/spi_master_tb.v" \
+
+# compile glbl module
+verilog xil_defaultlib "glbl.v"
+
+# Do not sort compile order
+nosort
