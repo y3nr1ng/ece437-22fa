@@ -27,8 +27,8 @@ module cmv300_lvds (
 
     // configuration
     input               i_rst,
-    input               i_lvds_en,
-    input               i_frame_req,
+    output              o_lvds_en,
+    output              o_frame_req,
 
     // data
     input               i_out_clkn,
@@ -38,13 +38,55 @@ module cmv300_lvds (
     input               i_ctrlp,
     input               i_ctrln,
     
-    output  [3:0]       debug_led
+    output  [7:0]       xem_led,
+    output  [3:0]       sb_led
 );
 
     /*** enable lvds ***/
-    assign i_lvds_en = 1;
+    assign o_lvds_en = 1'b1;
     /*** enable lvds ***/
     
+    /*** DEBUG ***/
+    assign o_frame_req = 1'b1;
+    
+    wire        ctrl;
+    wire [3:0]  data;
+    wire        out_clk;
+    
+    genvar data_count;
+    generate
+        for (data_count = 0; data_count < 4; data_count = data_count + 1) begin: data_ibufds
+            IBUFDS #(
+                .DIFF_TERM ("FALSE"),
+                .IOSTANDARD ("LVDS_25")
+            ) data_ibufds_inst (
+                .I (i_datap[data_count]),
+                .IB (i_datan[data_count]),
+                .O (data[data_count])
+            );
+        end
+    endgenerate
+    
+    IBUFDS #(
+        .DIFF_TERM ("FALSE"),
+        .IOSTANDARD ("LVDS_25")
+    ) clk_ibufds_inst (
+        .I (i_out_clkp),
+        .IB (i_out_clkn),
+        .O (out_clk)
+    );
+    
+    IBUFDS #(
+        .DIFF_TERM ("FALSE"),
+        .IOSTANDARD ("LVDS_25")
+    ) ctrl_ibufds_inst (
+        .I (i_ctrlp),
+        .IB (i_ctrln),
+        .O (ctrl)
+    );
+    /*** DEBUG ***/
+    
+    /*
     wire        ctrl;
     wire [3:0]  data;
     wire        out_clk;
@@ -62,8 +104,6 @@ module cmv300_lvds (
         .in_delay_data_inc (),
         .in_delay_tap_in (),
         .in_delay_tap_out (),
-        .delay_locked (),
-        .ref_clock (),
         
         // clock
         .clk_in_n (i_out_clkn),
@@ -71,7 +111,23 @@ module cmv300_lvds (
         .clk_out (out_clk),
         .io_reset (i_rst)
     );
+    */
     
-    assign debug_led[0] = ctrl;
+    wire [11:0] ctrls;
+
+    deserializer #(
+        .WIDTH (12)
+    ) deserializer12_0 (
+        .i_clk (out_clk),
+        .i_rst (),
+
+        .in (ctrl),
+        .out (ctrls)
+    );
+
+    assign xem_led = ctrls[7:0];
+
+    assign sb_led[0] = out_clk;
+    assign sb_led[1] = ctrl;
 
 endmodule

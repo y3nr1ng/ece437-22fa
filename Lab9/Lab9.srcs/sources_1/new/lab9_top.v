@@ -31,7 +31,7 @@ module lab9_top(
     inout   [31:0]  okUHU,
     inout           okAA,
     
-    // cmv300 cloking
+    // cmv300 clocking
     output          CMV300_CLK_IN,
 
     // cmv300 configuration
@@ -46,6 +46,12 @@ module lab9_top(
     output          CMV300_SPI_CLK,
     
     // cmv300 data interface
+    input   [3:0]   CMV300_Out_N,
+    input   [3:0]   CMV300_Out_P,
+    input           CMV300_Out_ctrl_N,
+    input           CMV300_Out_ctrl_P,
+    input           CMV300_Out_clk_N,
+    input           CMV300_Out_clk_P,
 
     // led debug
     output [3:0]    s_LED,
@@ -152,22 +158,23 @@ module lab9_top(
     /*** cmv300 data ***/
     cmv300_lvds cmv300_lvds_inst (
         // cmv300 clocking
-        .o_clk_in,
+        .o_clk_in (),
 
-    // configuration
-    .i_rst (),
-    .i_lvds_en (),
-    .i_frame_req (),
-
-    // data
-    .i_out_clkn (),
-    .i_out_clkp (),
-    .i_datan (),
-    .i_datap (),
-    .i_ctrlp (),
-    .i_ctrln (),
+        // configuration
+        .i_rst (),
+        .o_lvds_en (CMV300_Enable_LVDS),
+        .o_frame_req (CMV300_FRAME_REQ),
     
-    .debug_led (s_LED)
+        // data
+        .i_out_clkn (CMV300_Out_clk_N),
+        .i_out_clkp (CMV300_Out_clk_P),
+        .i_datan (CMV300_Out_N),
+        .i_datap (CMV300_Out_P),
+        .i_ctrln (CMV300_Out_ctrl_N),
+        .i_ctrlp (CMV300_Out_ctrl_P),
+        
+        .xem_led (led),
+        .sb_led (s_LED)
     );
     /*** cmv300 data ***/
     

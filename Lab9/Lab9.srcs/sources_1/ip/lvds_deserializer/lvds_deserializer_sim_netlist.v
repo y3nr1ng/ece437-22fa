@@ -3,8 +3,8 @@
 // Tool Version: Vivado v.2019.1 (win64) Build 2552052 Fri May 24 14:49:42 MDT 2019
 // Date        : Mon Nov  7 17:12:05 2022
 // Host        : ECEB-4022-07 running 64-bit major release  (build 9200)
-// Command     : write_verilog -force -mode funcsim
-//               c:/ytliu2/ECE437/Lab9/Lab9.srcs/sources_1/ip/lvds_deserializer/lvds_deserializer_sim_netlist.v
+// Command     : write_verilog -force -mode funcsim -rename_top lvds_deserializer -prefix
+//               lvds_deserializer_ lvds_deserializer_sim_netlist.v
 // Design      : lvds_deserializer
 // Purpose     : This verilog netlist is a functional simulation representation of the design and should not be modified
 //               or synthesized. This netlist cannot be used for SDF annotated simulation.
@@ -82,7 +82,7 @@ module lvds_deserializer
         .ref_clock(ref_clock));
 endmodule
 
-(* DEV_W = "5" *) (* ORIG_REF_NAME = "lvds_deserializer_selectio_wiz" *) (* SYS_W = "5" *) 
+(* DEV_W = "5" *) (* SYS_W = "5" *) 
 module lvds_deserializer_lvds_deserializer_selectio_wiz
    (data_in_from_pins_p,
     data_in_from_pins_n,

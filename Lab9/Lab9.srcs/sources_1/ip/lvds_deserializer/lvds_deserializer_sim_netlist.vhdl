@@ -3,8 +3,8 @@
 -- Tool Version: Vivado v.2019.1 (win64) Build 2552052 Fri May 24 14:49:42 MDT 2019
 -- Date        : Mon Nov  7 17:12:05 2022
 -- Host        : ECEB-4022-07 running 64-bit major release  (build 9200)
--- Command     : write_vhdl -force -mode funcsim
---               c:/ytliu2/ECE437/Lab9/Lab9.srcs/sources_1/ip/lvds_deserializer/lvds_deserializer_sim_netlist.vhdl
+-- Command     : write_vhdl -force -mode funcsim -rename_top lvds_deserializer -prefix
+--               lvds_deserializer_ lvds_deserializer_sim_netlist.vhdl
 -- Design      : lvds_deserializer
 -- Purpose     : This VHDL netlist is a functional simulation representation of the design and should not be modified or
 --               synthesized. This netlist cannot be used for SDF annotated simulation.
@@ -34,8 +34,6 @@ entity lvds_deserializer_lvds_deserializer_selectio_wiz is
   );
   attribute DEV_W : integer;
   attribute DEV_W of lvds_deserializer_lvds_deserializer_selectio_wiz : entity is 5;
-  attribute ORIG_REF_NAME : string;
-  attribute ORIG_REF_NAME of lvds_deserializer_lvds_deserializer_selectio_wiz : entity is "lvds_deserializer_selectio_wiz";
   attribute SYS_W : integer;
   attribute SYS_W of lvds_deserializer_lvds_deserializer_selectio_wiz : entity is 5;
 end lvds_deserializer_lvds_deserializer_selectio_wiz;
