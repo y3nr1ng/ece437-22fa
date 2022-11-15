@@ -155,77 +155,77 @@ set_property IOSTANDARD LVCMOS33 [get_ports {CMV300_FRAME_REQ}]
 
 # CMV300-LVDS-DATA  ###################################################
 # MC1-19 
-set_property PACKAGE_PIN R6 [get_ports {CMV300_Out_P[0]}]
+#set_property PACKAGE_PIN R6 [get_ports {CMV300_Out_P[0]}]
 # MC1-21 
-set_property PACKAGE_PIN T6 [get_ports {CMV300_Out_N[0]}]
+#set_property PACKAGE_PIN T6 [get_ports {CMV300_Out_N[0]}]
 # MC1-15 
-set_property PACKAGE_PIN W9 [get_ports {CMV300_Out_P[1]}]
+#set_property PACKAGE_PIN W9 [get_ports {CMV300_Out_P[1]}]
 # MC1-17 
-set_property PACKAGE_PIN Y9 [get_ports {CMV300_Out_N[1]}]
+#set_property PACKAGE_PIN Y9 [get_ports {CMV300_Out_N[1]}]
 # MC1-31 
-set_property PACKAGE_PIN AA5 [get_ports {CMV300_Out_P[2]}]
+#set_property PACKAGE_PIN AA5 [get_ports {CMV300_Out_P[2]}]
 # MC1-33 
-set_property PACKAGE_PIN AB5 [get_ports {CMV300_Out_N[2]}]
+#set_property PACKAGE_PIN AB5 [get_ports {CMV300_Out_N[2]}]
 # MC1-27 
-set_property PACKAGE_PIN T5 [get_ports {CMV300_Out_P[3]}]
+#set_property PACKAGE_PIN T5 [get_ports {CMV300_Out_P[3]}]
 # MC1-29 
-set_property PACKAGE_PIN U5 [get_ports {CMV300_Out_N[3]}]
+#set_property PACKAGE_PIN U5 [get_ports {CMV300_Out_N[3]}]
 
-set_property IOSTANDARD LVDS_25 [get_ports {CMV300_Out_P[*]}]
-set_property IOSTANDARD LVDS_25 [get_ports {CMV300_Out_N[*]}]
+#set_property IOSTANDARD LVDS_25 [get_ports {CMV300_Out_P[*]}]
+#set_property IOSTANDARD LVDS_25 [get_ports {CMV300_Out_N[*]}]
 
 # MC1-23 
-set_property PACKAGE_PIN U6 [get_ports {CMV300_Out_ctrl_P}]
-set_property IOSTANDARD LVDS_25 [get_ports {CMV300_Out_ctrl_P}]
+#set_property PACKAGE_PIN U6 [get_ports {CMV300_Out_ctrl_P}]
+#set_property IOSTANDARD LVDS_25 [get_ports {CMV300_Out_ctrl_P}]
 # MC1-25 
-set_property PACKAGE_PIN V5 [get_ports {CMV300_Out_ctrl_N}]
-set_property IOSTANDARD LVDS_25 [get_ports {CMV300_Out_ctrl_N}]
+#set_property PACKAGE_PIN V5 [get_ports {CMV300_Out_ctrl_N}]
+#set_property IOSTANDARD LVDS_25 [get_ports {CMV300_Out_ctrl_N}]
 
 # MC1-32 
-set_property PACKAGE_PIN R4 [get_ports {CMV300_Out_clk_P}]
-set_property IOSTANDARD LVDS_25 [get_ports {CMV300_Out_clk_P}]
+#set_property PACKAGE_PIN R4 [get_ports {CMV300_Out_clk_P}]
+#set_property IOSTANDARD LVDS_25 [get_ports {CMV300_Out_clk_P}]
 # MC1-34 
-set_property PACKAGE_PIN T4 [get_ports {CMV300_Out_clk_N}]
-set_property IOSTANDARD LVDS_25 [get_ports {CMV300_Out_clk_N}]
+#set_property PACKAGE_PIN T4 [get_ports {CMV300_Out_clk_N}]
+#set_property IOSTANDARD LVDS_25 [get_ports {CMV300_Out_clk_N}]
 
 # CMV300-CMOS-DATA  ###################################################
 # MC1-19 
-#set_property PACKAGE_PIN R6 [get_ports {CMV300_D[0]}]
-#set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_D[0]}]
+set_property PACKAGE_PIN R6 [get_ports {CMV300_D[0]}]
+set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_D[0]}]
 # MC1-21 
-#set_property PACKAGE_PIN T6 [get_ports {CMV300_D[1]}]
-#set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_D[1]}]
+set_property PACKAGE_PIN T6 [get_ports {CMV300_D[1]}]
+set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_D[1]}]
 # MC1-15 
-#set_property PACKAGE_PIN W9 [get_ports {CMV300_D[2]}]
-#set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_D[2]}]
+set_property PACKAGE_PIN W9 [get_ports {CMV300_D[2]}]
+set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_D[2]}]
 # MC1-17 
-#set_property PACKAGE_PIN Y9 [get_ports {CMV300_D[3]}]
-#set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_D[3]}]
+set_property PACKAGE_PIN Y9 [get_ports {CMV300_D[3]}]
+set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_D[3]}]
 # MC1-31 
-#set_property PACKAGE_PIN AA5 [get_ports {CMV300_D[4]}]
-#set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_D[4]}]
+set_property PACKAGE_PIN AA5 [get_ports {CMV300_D[4]}]
+set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_D[4]}]
 # MC1-33 
-#set_property PACKAGE_PIN AB5 [get_ports {CMV300_D[5]}]
-#set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_D[5]}]
+set_property PACKAGE_PIN AB5 [get_ports {CMV300_D[5]}]
+set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_D[5]}]
 # MC1-27 
-#set_property PACKAGE_PIN T5 [get_ports {CMV300_D[6]}]
-#set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_D[6]}]
+set_property PACKAGE_PIN T5 [get_ports {CMV300_D[6]}]
+set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_D[6]}]
 # MC1-29 
-#set_property PACKAGE_PIN U5 [get_ports {CMV300_D[7]}]
-#set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_D[7]}]
+set_property PACKAGE_PIN U5 [get_ports {CMV300_D[7]}]
+set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_D[7]}]
 # MC1-32 
-#set_property PACKAGE_PIN R4 [get_ports {CMV300_D[8]}]
-#set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_D[8]}]
+set_property PACKAGE_PIN R4 [get_ports {CMV300_D[8]}]
+set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_D[8]}]
 # MC1-34 
-#set_property PACKAGE_PIN T4 [get_ports {CMV300_D[9]}]
-#set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_D[9]}]
+set_property PACKAGE_PIN T4 [get_ports {CMV300_D[9]}]
+set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_D[9]}]
 
 # MC1-23 
-#set_property PACKAGE_PIN U6 [get_ports {CMV300_Line_valid}]
-#set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_Line_valid}]
+set_property PACKAGE_PIN U6 [get_ports {CMV300_Line_valid}]
+set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_Line_valid}]
 # MC1-2
-#set_property PACKAGE_PIN V5 [get_ports {CMV300_Data_valid}]
-#set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_Data_valid}]
+set_property PACKAGE_PIN V5 [get_ports {CMV300_Data_valid}]
+set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_Data_valid}]
 
 
 
