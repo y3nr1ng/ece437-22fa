@@ -33,10 +33,10 @@ module lab9_top(
     
     // cmv300 clocking
     output          CMV300_CLK_IN,
+    input           CMV300_CLK_OUT,
 
     // cmv300 configuration
     output          CMV300_SYS_RES_N,
-    output          CMV300_Enable_LVDS,
     output          CMV300_FRAME_REQ,
     
     // cmv300 spi interface
@@ -46,12 +46,9 @@ module lab9_top(
     output          CMV300_SPI_CLK,
     
     // cmv300 data interface
-    input   [3:0]   CMV300_Out_N,
-    input   [3:0]   CMV300_Out_P,
-    input           CMV300_Out_ctrl_N,
-    input           CMV300_Out_ctrl_P,
-    input           CMV300_Out_clk_N,
-    input           CMV300_Out_clk_P,
+    input   [9:0]   CMV300_D,
+    input           CMV300_Line_valid,
+    input           CMV300_Data_valid,
 
     // led debug
     output [3:0]    s_LED,
@@ -75,12 +72,13 @@ module lab9_top(
     /*** ok interface ***/   
     wire [112:0]    okHE;
     wire [64:0]     okEH;
-    
+    wire            okClk;
+
     okHost host (
         .okUH (okUH),
         .okHU (okHU),
         .okUHU (okUHU),
-        .okClk (),
+        .okClk (okClk),
         .okAA (okAA),
         .okHE (okHE),
         .okEH (okEH)
@@ -92,12 +90,16 @@ module lab9_top(
     wire [31:0] ti_40_wire;
     wire [31:0] to_60_wire;
     
-    localparam  endpoint_count = 2;
+    wire [31:0] po_a0_wire_datain;
+    assign po_a0_wire_datain = { cmv300_fifo_data[7:0], cmv300_fifo_data[15:8], cmv300_fifo_data[23:16], cmv300_fifo_data[31:24] };
+
+    localparam  endpoint_count = 3;
     wire [endpoint_count*65-1:0] okEHx;  
     okWireOR # (.N(endpoint_count)) wireOR (okEH, okEHx);
     
     // input, 0x00
     //  0: spi reset
+    //  1: cmv300 reset
     okWireIn     wi_00 (.okHE (okHE),                                                       .ep_addr (8'h00), .ep_dataout (wi_00_wire)); 
     // input, 0x01, spi input data
     okWireIn     wi_01 (.okHE (okHE),                                                       .ep_addr (8'h01), .ep_dataout (i_mem_data_0)); 
@@ -112,18 +114,24 @@ module lab9_top(
     // trigger out, 0x60
     //  0: spi done
     okTriggerOut to_60 (.okHE (okHE), .okEH (okEHx[ 1*65 +: 65 ]),  .ep_clk(ref_clk_80M),   .ep_addr (8'h60), .ep_trigger (to_60_wire));
+    // pipe
+    okBTPipeOut po_a0  (.okHE (okHE), .okEH (okEHx[ 2*65 +: 65 ]),                          .ep_addr (8'ha0), .ep_datain (po_a0_wire_datain), 
+                                                                                                              .ep_read(cmv300_fifo_read_en), 
+                                                                                                              .ep_blockstrobe(),  
+                                                                                                              .ep_ready(cmv300_fifo_prog_full)
+    );  
     /*** ok endpoints ***/
     
     /*** cmv300 spi ***/
     wire reset_async_0;
-    wire reset_sys_clk_0;
+    wire reset_ref_clk_0;
     
     assign reset_async_0 = wi_00_wire[0];
     
     sync_reset sync_reset_inst_0 (
         .i_clk (ref_clk_80M),
         .i_async_reset (reset_async_0),
-        .o_sync_reset (reset_sys_clk_0)
+        .o_sync_reset (reset_ref_clk_0)
     );
     
     wire [31:0] i_mem_data_0;
@@ -135,7 +143,7 @@ module lab9_top(
         .i_clk (ref_clk_80M),
         
         // controls
-        .i_rst (reset_sys_clk_0),
+        .i_rst (reset_ref_clk_0),
         .i_start (ti_40_wire[0]),
         .o_done (to_60_wire[0]),
         
@@ -156,25 +164,43 @@ module lab9_top(
     /*** cmv300 spi ***/
     
     /*** cmv300 data ***/
-    cmv300_lvds cmv300_lvds_inst (
-        // cmv300 clocking
-        .o_clk_in (),
-
-        // configuration
-        .i_rst (),
-        .o_lvds_en (CMV300_Enable_LVDS),
+    wire [31:0] cmv300_fifo_data;
+    wire        cmv300_fifo_prog_full;
+    wire        cmv300_fifo_read_en;
+    
+    wire reset_async_1;
+    wire reset_ref_clk_1;
+    
+    assign reset_async_1 = wi_00_wire[1];
+    
+    sync_reset sync_reset_inst_1 (
+        .i_clk (ref_clk_80M),
+        .i_async_reset (reset_async_1),
+        .o_sync_reset (reset_ref_clk_1)
+    );
+    
+    cmv300_cmos #(
+        .CLK_DIVIDER (2)
+    ) cmv300_cmos_inst (
+        .i_clk (ref_clk_80M),
+        .i_rst (reset_ref_clk_1),
+        
+        .o_clk_in (CMV300_CLK_IN),
+        .o_sys_res (CMV300_SYS_RES_N),
         .o_frame_req (CMV300_FRAME_REQ),
     
         // data
-        .i_out_clkn (CMV300_Out_clk_N),
-        .i_out_clkp (CMV300_Out_clk_P),
-        .i_datan (CMV300_Out_N),
-        .i_datap (CMV300_Out_P),
-        .i_ctrln (CMV300_Out_ctrl_N),
-        .i_ctrlp (CMV300_Out_ctrl_P),
+        .i_clk_out (CMV300_CLK_OUT),
+        .i_data (CMV300_D),
+        .i_lval (CMV300_Line_valid),
+        .i_dval (CMV300_Data_valid),
+
+        .i_fifo_read_en (cmv300_fifo_read_en),
+        .i_fifo_read_clk (okClk),
+        .o_data (cmv300_fifo_data),
+        .o_fifo_prog_full (cmv300_fifo_prog_full),
         
-        .xem_led (led),
-        .sb_led (s_LED)
+        .debug_led (s_LED)
     );
     /*** cmv300 data ***/
     

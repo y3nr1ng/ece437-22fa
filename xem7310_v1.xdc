@@ -105,11 +105,11 @@ set_property SLEW FAST [get_ports {reset}]
 
 # CMV300-Clocking #####################################################
 # MC1-77 
-set_property PACKAGE_PIN V4 [get_ports {CMV300_LVDS_CLK_P}]
-set_property IOSTANDARD LVDS_25 [get_ports {CMV300-LVDS_CLK_P}]
+#set_property PACKAGE_PIN V4 [get_ports {CMV300_LVDS_CLK_P}]
+#set_property IOSTANDARD LVDS_25 [get_ports {CMV300-LVDS_CLK_P}]
 # MC1-79 
-set_property PACKAGE_PIN W4 [get_ports {CMV300_LVDS_CLK_N}]
-set_property IOSTANDARD LVDS_25 [get_ports {CMV300_LVDS_CLK_N}]
+#set_property PACKAGE_PIN W4 [get_ports {CMV300_LVDS_CLK_N}]
+#set_property IOSTANDARD LVDS_25 [get_ports {CMV300_LVDS_CLK_N}]
 
 # MC2-77 
 set_property PACKAGE_PIN H4 [get_ports {CMV300_CLK_IN}]
