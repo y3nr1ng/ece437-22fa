@@ -1,10 +1,10 @@
 // Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
 // --------------------------------------------------------------------------------
 // Tool Version: Vivado v.2019.1 (win64) Build 2552052 Fri May 24 14:49:42 MDT 2019
-// Date        : Mon Nov  7 12:43:12 2022
+// Date        : Tue Nov 29 17:46:39 2022
 // Host        : ECEB-4022-07 running 64-bit major release  (build 9200)
 // Command     : write_verilog -force -mode funcsim
-//               c:/ytliu2/ECE437/Lab9/Lab9.srcs/sources_1/ip/ref_clk_pll/ref_clk_pll_sim_netlist.v
+//               C:/ytliu2/ECE437/Lab9/Lab9.srcs/sources_1/ip/ref_clk_pll/ref_clk_pll_sim_netlist.v
 // Design      : ref_clk_pll
 // Purpose     : This verilog netlist is a functional simulation representation of the design and should not be modified
 //               or synthesized. This netlist cannot be used for SDF annotated simulation.
@@ -15,21 +15,25 @@
 (* NotValidForBitStream *)
 module ref_clk_pll
    (clk_80M,
+    clk_120M,
     reset,
     locked,
     sys_clk);
   output clk_80M;
+  output clk_120M;
   input reset;
   output locked;
   input sys_clk;
 
+  wire clk_120M;
   wire clk_80M;
   wire locked;
   wire reset;
   (* IBUF_LOW_PWR *) wire sys_clk;
 
   ref_clk_pll_ref_clk_pll_clk_wiz inst
-       (.clk_80M(clk_80M),
+       (.clk_120M(clk_120M),
+        .clk_80M(clk_80M),
         .locked(locked),
         .reset(reset),
         .sys_clk(sys_clk));
@@ -38,14 +42,18 @@ endmodule
 (* ORIG_REF_NAME = "ref_clk_pll_clk_wiz" *) 
 module ref_clk_pll_ref_clk_pll_clk_wiz
    (clk_80M,
+    clk_120M,
     reset,
     locked,
     sys_clk);
   output clk_80M;
+  output clk_120M;
   input reset;
   output locked;
   input sys_clk;
 
+  wire clk_120M;
+  wire clk_120M_ref_clk_pll;
   wire clk_80M;
   wire clk_80M_ref_clk_pll;
   wire clkfbout_buf_ref_clk_pll;
@@ -54,7 +62,6 @@ module ref_clk_pll_ref_clk_pll_clk_wiz
   wire reset;
   wire sys_clk;
   wire sys_clk_ref_clk_pll;
-  wire NLW_plle2_adv_inst_CLKOUT1_UNCONNECTED;
   wire NLW_plle2_adv_inst_CLKOUT2_UNCONNECTED;
   wire NLW_plle2_adv_inst_CLKOUT3_UNCONNECTED;
   wire NLW_plle2_adv_inst_CLKOUT4_UNCONNECTED;
@@ -80,16 +87,20 @@ module ref_clk_pll_ref_clk_pll_clk_wiz
        (.I(clk_80M_ref_clk_pll),
         .O(clk_80M));
   (* BOX_TYPE = "PRIMITIVE" *) 
+  BUFG clkout2_buf
+       (.I(clk_120M_ref_clk_pll),
+        .O(clk_120M));
+  (* BOX_TYPE = "PRIMITIVE" *) 
   PLLE2_ADV #(
     .BANDWIDTH("OPTIMIZED"),
-    .CLKFBOUT_MULT(22),
+    .CLKFBOUT_MULT(24),
     .CLKFBOUT_PHASE(0.000000),
     .CLKIN1_PERIOD(5.000000),
     .CLKIN2_PERIOD(0.000000),
-    .CLKOUT0_DIVIDE(11),
+    .CLKOUT0_DIVIDE(12),
     .CLKOUT0_DUTY_CYCLE(0.500000),
     .CLKOUT0_PHASE(0.000000),
-    .CLKOUT1_DIVIDE(1),
+    .CLKOUT1_DIVIDE(8),
     .CLKOUT1_DUTY_CYCLE(0.500000),
     .CLKOUT1_PHASE(0.000000),
     .CLKOUT2_DIVIDE(1),
@@ -119,7 +130,7 @@ module ref_clk_pll_ref_clk_pll_clk_wiz
         .CLKIN2(1'b0),
         .CLKINSEL(1'b1),
         .CLKOUT0(clk_80M_ref_clk_pll),
-        .CLKOUT1(NLW_plle2_adv_inst_CLKOUT1_UNCONNECTED),
+        .CLKOUT1(clk_120M_ref_clk_pll),
         .CLKOUT2(NLW_plle2_adv_inst_CLKOUT2_UNCONNECTED),
         .CLKOUT3(NLW_plle2_adv_inst_CLKOUT3_UNCONNECTED),
         .CLKOUT4(NLW_plle2_adv_inst_CLKOUT4_UNCONNECTED),

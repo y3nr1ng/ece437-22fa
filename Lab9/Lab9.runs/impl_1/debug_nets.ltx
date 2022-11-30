@@ -11,7 +11,7 @@
                         "type": "XSDB_V3",
                         "name": "dbg_hub",
                         "spec": "labtools_xsdbm_v3",
-                        "clk_input_freq_hz": "79999993"
+                        "clk_input_freq_hz": "120000002"
                     },
                     {
                         "type": "ILA_V3",
@@ -138,8 +138,78 @@
                                 ]
                             },
                             {
-                                "name": "probe1",
+                                "name": "probe0",
                                 "id": 7,
+                                "type": "DATA_TRIGGER",
+                                "direction": "IN",
+                                "isVector": true,
+                                "leftIndex": 7,
+                                "rightIndex": 7,
+                                "portIndex": 0,
+                                "nets": [
+                                    {
+                                        "name": "cmv300_cmos_inst/debug_led",
+                                        "isBus": true,
+                                        "subnets": [
+                                            {
+                                                "name": "cmv300_cmos_inst/debug_led[6]"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "name": "probe0",
+                                "id": 8,
+                                "type": "DATA_TRIGGER",
+                                "direction": "IN",
+                                "isVector": true,
+                                "leftIndex": 8,
+                                "rightIndex": 8,
+                                "portIndex": 0,
+                                "nets": [
+                                    {
+                                        "name": "cmv300_cmos_inst/i_start",
+                                        "isBus": false
+                                    }
+                                ]
+                            },
+                            {
+                                "name": "probe0",
+                                "id": 9,
+                                "type": "DATA_TRIGGER",
+                                "direction": "IN",
+                                "isVector": true,
+                                "leftIndex": 9,
+                                "rightIndex": 9,
+                                "portIndex": 0,
+                                "nets": [
+                                    {
+                                        "name": "cmv300_cmos_inst/i_rst",
+                                        "isBus": false
+                                    }
+                                ]
+                            },
+                            {
+                                "name": "probe0",
+                                "id": 10,
+                                "type": "DATA_TRIGGER",
+                                "direction": "IN",
+                                "isVector": true,
+                                "leftIndex": 10,
+                                "rightIndex": 10,
+                                "portIndex": 0,
+                                "nets": [
+                                    {
+                                        "name": "cmv300_cmos_inst/i_clk",
+                                        "isBus": false,
+                                        "parentNetId": 10
+                                    }
+                                ]
+                            },
+                            {
+                                "name": "probe1",
+                                "id": 11,
                                 "type": "DATA",
                                 "direction": "IN",
                                 "isVector": true,
@@ -253,18 +323,24 @@
                             },
                             {
                                 "name": "probe1",
-                                "id": 8,
+                                "id": 12,
                                 "type": "DATA",
                                 "direction": "IN",
                                 "isVector": true,
                                 "leftIndex": 32,
-                                "rightIndex": 39,
+                                "rightIndex": 41,
                                 "portIndex": 1,
                                 "nets": [
                                     {
                                         "name": "cmv300_cmos_inst/i_data",
                                         "isBus": true,
                                         "subnets": [
+                                            {
+                                                "name": "cmv300_cmos_inst/i_data[9]"
+                                            },
+                                            {
+                                                "name": "cmv300_cmos_inst/i_data[8]"
+                                            },
                                             {
                                                 "name": "cmv300_cmos_inst/i_data[7]"
                                             },
@@ -290,6 +366,67 @@
                                                 "name": "cmv300_cmos_inst/i_data[0]"
                                             }
                                         ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "parent_nets": [
+                    {
+                        "id": 10,
+                        "name": "ref_clk_inst/ref_clk_pll_inst/inst/clk_80M",
+                        "state_reg": [
+                            {
+                                "name": "spi_master_inst/FSM_onehot_state_reg[0]",
+                                "states": [
+                                    {
+                                        "name": "S_PAYLOAD",
+                                        "val": "000100000000"
+                                    },
+                                    {
+                                        "name": "S_PREAMBLE_STARTWAIT",
+                                        "val": "000000010000"
+                                    },
+                                    {
+                                        "name": "S_PREAMBLE_START",
+                                        "val": "000000001000"
+                                    },
+                                    {
+                                        "name": "S_GET_PAYLOAD_LENGTH",
+                                        "val": "000000000100"
+                                    },
+                                    {
+                                        "name": "S_PREAMBLE_NEXT",
+                                        "val": "000010000000"
+                                    },
+                                    {
+                                        "name": "S_PREAMBLE_TXWAIT",
+                                        "val": "000001000000"
+                                    },
+                                    {
+                                        "name": "S_PAYLOAD_STOPWAIT",
+                                        "val": "100000000000"
+                                    },
+                                    {
+                                        "name": "S_GET_PREAMBLE_LENGTH",
+                                        "val": "000000000010"
+                                    },
+                                    {
+                                        "name": "S_PREAMBLE_TX",
+                                        "val": "000000100000"
+                                    },
+                                    {
+                                        "name": "S_PAYLOAD_STOP",
+                                        "val": "010000000000"
+                                    },
+                                    {
+                                        "name": "S_PAYLOAD_WAIT",
+                                        "val": "001000000000"
+                                    },
+                                    {
+                                        "name": "S_IDLE",
+                                        "val": "000000000001"
                                     }
                                 ]
                             }

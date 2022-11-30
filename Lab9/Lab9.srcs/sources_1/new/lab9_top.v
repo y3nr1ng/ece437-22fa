@@ -58,14 +58,16 @@ module lab9_top(
     /*** referenc clock ***/
     wire sys_clk;
     wire ref_clk_80M;
-
+    wire ila_clk;
+    
     ref_clk ref_clk_inst (
         .sys_clkn (sys_clkn),
         .sys_clkp (sys_clkp),
 
         .sys_clk (sys_clk),
 
-        .clk_80M (ref_clk_80M)
+        .clk_80M (ref_clk_80M),
+        .clk_120M (ila_clk)
     );
     /*** referenc clock ***/
     
@@ -88,12 +90,14 @@ module lab9_top(
     /*** ok endpoints ***/
     wire [31:0] wi_00_wire;
     wire [31:0] ti_40_wire;
+    wire [31:0] ti_41_wire;
     wire [31:0] to_60_wire;
+    wire [31:0] to_61_wire;
     
     wire [31:0] po_a0_wire_datain;
     assign po_a0_wire_datain = { cmv300_fifo_data[7:0], cmv300_fifo_data[15:8], cmv300_fifo_data[23:16], cmv300_fifo_data[31:24] };
 
-    localparam  endpoint_count = 3;
+    localparam  endpoint_count = 4;
     wire [endpoint_count*65-1:0] okEHx;  
     okWireOR # (.N(endpoint_count)) wireOR (okEH, okEHx);
     
@@ -111,11 +115,17 @@ module lab9_top(
     //  2: spi mem write
     //  3: spi mem read
     okTriggerIn  ti_40 (.okHE (okHE),                               .ep_clk(ref_clk_80M),   .ep_addr (8'h40), .ep_trigger (ti_40_wire));
+    // trigger in, 0x41
+    //  0: cmv start
+    okTriggerIn  ti_41 (.okHE (okHE),                               .ep_clk(ref_clk_80M),   .ep_addr (8'h41), .ep_trigger (ti_41_wire));
     // trigger out, 0x60
     //  0: spi done
     okTriggerOut to_60 (.okHE (okHE), .okEH (okEHx[ 1*65 +: 65 ]),  .ep_clk(ref_clk_80M),   .ep_addr (8'h60), .ep_trigger (to_60_wire));
+    // trigger out, 0x61
+    //  0: cmv done
+    okTriggerOut to_61 (.okHE (okHE), .okEH (okEHx[ 2*65 +: 65 ]),  .ep_clk(ref_clk_80M),   .ep_addr (8'h61), .ep_trigger (to_61_wire));
     // pipe
-    okBTPipeOut po_a0  (.okHE (okHE), .okEH (okEHx[ 2*65 +: 65 ]),                          .ep_addr (8'ha0), .ep_datain (po_a0_wire_datain), 
+    okBTPipeOut po_a0  (.okHE (okHE), .okEH (okEHx[ 3*65 +: 65 ]),                          .ep_addr (8'ha0), .ep_datain (po_a0_wire_datain), 
                                                                                                               .ep_read(cmv300_fifo_read_en), 
                                                                                                               .ep_blockstrobe(),  
                                                                                                               .ep_ready(cmv300_fifo_prog_full)
@@ -183,7 +193,10 @@ module lab9_top(
         .CLK_DIVIDER (2)
     ) cmv300_cmos_inst (
         .i_clk (ref_clk_80M),
+
         .i_rst (reset_ref_clk_1),
+        .i_start (ti_41_wire[0]),
+        .o_done (to_61_wire[0]),
         
         .o_clk_in (CMV300_CLK_IN),
         .o_sys_res (CMV300_SYS_RES_N),
@@ -200,7 +213,8 @@ module lab9_top(
         .o_data (cmv300_fifo_data),
         .o_fifo_prog_full (cmv300_fifo_prog_full),
         
-        .debug_led (s_LED)
+        .ila_clk (ila_clk),
+        .debug_led (led)
     );
     /*** cmv300 data ***/
     

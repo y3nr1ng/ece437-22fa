@@ -1,10 +1,10 @@
 -- Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
 -- --------------------------------------------------------------------------------
 -- Tool Version: Vivado v.2019.1 (win64) Build 2552052 Fri May 24 14:49:42 MDT 2019
--- Date        : Mon Nov  7 12:43:12 2022
+-- Date        : Tue Nov 29 17:46:39 2022
 -- Host        : ECEB-4022-07 running 64-bit major release  (build 9200)
 -- Command     : write_vhdl -force -mode funcsim
---               c:/ytliu2/ECE437/Lab9/Lab9.srcs/sources_1/ip/ref_clk_pll/ref_clk_pll_sim_netlist.vhdl
+--               C:/ytliu2/ECE437/Lab9/Lab9.srcs/sources_1/ip/ref_clk_pll/ref_clk_pll_sim_netlist.vhdl
 -- Design      : ref_clk_pll
 -- Purpose     : This VHDL netlist is a functional simulation representation of the design and should not be modified or
 --               synthesized. This netlist cannot be used for SDF annotated simulation.
@@ -17,6 +17,7 @@ use UNISIM.VCOMPONENTS.ALL;
 entity ref_clk_pll_ref_clk_pll_clk_wiz is
   port (
     clk_80M : out STD_LOGIC;
+    clk_120M : out STD_LOGIC;
     reset : in STD_LOGIC;
     locked : out STD_LOGIC;
     sys_clk : in STD_LOGIC
@@ -26,11 +27,11 @@ entity ref_clk_pll_ref_clk_pll_clk_wiz is
 end ref_clk_pll_ref_clk_pll_clk_wiz;
 
 architecture STRUCTURE of ref_clk_pll_ref_clk_pll_clk_wiz is
+  signal clk_120M_ref_clk_pll : STD_LOGIC;
   signal clk_80M_ref_clk_pll : STD_LOGIC;
   signal clkfbout_buf_ref_clk_pll : STD_LOGIC;
   signal clkfbout_ref_clk_pll : STD_LOGIC;
   signal sys_clk_ref_clk_pll : STD_LOGIC;
-  signal NLW_plle2_adv_inst_CLKOUT1_UNCONNECTED : STD_LOGIC;
   signal NLW_plle2_adv_inst_CLKOUT2_UNCONNECTED : STD_LOGIC;
   signal NLW_plle2_adv_inst_CLKOUT3_UNCONNECTED : STD_LOGIC;
   signal NLW_plle2_adv_inst_CLKOUT4_UNCONNECTED : STD_LOGIC;
@@ -47,6 +48,7 @@ architecture STRUCTURE of ref_clk_pll_ref_clk_pll_clk_wiz is
   attribute IFD_DELAY_VALUE : string;
   attribute IFD_DELAY_VALUE of clkin1_ibufg : label is "AUTO";
   attribute BOX_TYPE of clkout1_buf : label is "PRIMITIVE";
+  attribute BOX_TYPE of clkout2_buf : label is "PRIMITIVE";
   attribute BOX_TYPE of plle2_adv_inst : label is "PRIMITIVE";
 begin
 clkf_buf: unisim.vcomponents.BUFG
@@ -67,17 +69,22 @@ clkout1_buf: unisim.vcomponents.BUFG
       I => clk_80M_ref_clk_pll,
       O => clk_80M
     );
+clkout2_buf: unisim.vcomponents.BUFG
+     port map (
+      I => clk_120M_ref_clk_pll,
+      O => clk_120M
+    );
 plle2_adv_inst: unisim.vcomponents.PLLE2_ADV
     generic map(
       BANDWIDTH => "OPTIMIZED",
-      CLKFBOUT_MULT => 22,
+      CLKFBOUT_MULT => 24,
       CLKFBOUT_PHASE => 0.000000,
       CLKIN1_PERIOD => 5.000000,
       CLKIN2_PERIOD => 0.000000,
-      CLKOUT0_DIVIDE => 11,
+      CLKOUT0_DIVIDE => 12,
       CLKOUT0_DUTY_CYCLE => 0.500000,
       CLKOUT0_PHASE => 0.000000,
-      CLKOUT1_DIVIDE => 1,
+      CLKOUT1_DIVIDE => 8,
       CLKOUT1_DUTY_CYCLE => 0.500000,
       CLKOUT1_PHASE => 0.000000,
       CLKOUT2_DIVIDE => 1,
@@ -108,7 +115,7 @@ plle2_adv_inst: unisim.vcomponents.PLLE2_ADV
       CLKIN2 => '0',
       CLKINSEL => '1',
       CLKOUT0 => clk_80M_ref_clk_pll,
-      CLKOUT1 => NLW_plle2_adv_inst_CLKOUT1_UNCONNECTED,
+      CLKOUT1 => clk_120M_ref_clk_pll,
       CLKOUT2 => NLW_plle2_adv_inst_CLKOUT2_UNCONNECTED,
       CLKOUT3 => NLW_plle2_adv_inst_CLKOUT3_UNCONNECTED,
       CLKOUT4 => NLW_plle2_adv_inst_CLKOUT4_UNCONNECTED,
@@ -132,6 +139,7 @@ use UNISIM.VCOMPONENTS.ALL;
 entity ref_clk_pll is
   port (
     clk_80M : out STD_LOGIC;
+    clk_120M : out STD_LOGIC;
     reset : in STD_LOGIC;
     locked : out STD_LOGIC;
     sys_clk : in STD_LOGIC
@@ -144,6 +152,7 @@ architecture STRUCTURE of ref_clk_pll is
 begin
 inst: entity work.ref_clk_pll_ref_clk_pll_clk_wiz
      port map (
+      clk_120M => clk_120M,
       clk_80M => clk_80M,
       locked => locked,
       reset => reset,

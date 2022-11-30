@@ -1,7 +1,7 @@
 Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
 -----------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2019.1 (win64) Build 2552052 Fri May 24 14:49:42 MDT 2019
-| Date         : Tue Nov 15 18:11:07 2022
+| Date         : Tue Nov 29 18:15:56 2022
 | Host         : ECEB-4022-07 running 64-bit major release  (build 9200)
 | Command      : report_utilization -file lab9_top_utilization_synth.rpt -pb lab9_top_utilization_synth.pb
 | Design       : lab9_top
@@ -30,13 +30,13 @@ Table of Contents
 +----------------------------+------+-------+-----------+-------+
 |          Site Type         | Used | Fixed | Available | Util% |
 +----------------------------+------+-------+-----------+-------+
-| Slice LUTs*                | 1143 |     0 |     47200 |  2.42 |
-|   LUT as Logic             | 1087 |     0 |     47200 |  2.30 |
+| Slice LUTs*                | 1222 |     0 |     47200 |  2.59 |
+|   LUT as Logic             | 1166 |     0 |     47200 |  2.47 |
 |   LUT as Memory            |   56 |     0 |     19000 |  0.29 |
 |     LUT as Distributed RAM |   56 |     0 |           |       |
 |     LUT as Shift Register  |    0 |     0 |           |       |
-| Slice Registers            | 1009 |    87 |     94400 |  1.07 |
-|   Register as Flip Flop    | 1009 |    87 |     94400 |  1.07 |
+| Slice Registers            | 1079 |    87 |     94400 |  1.14 |
+|   Register as Flip Flop    | 1079 |    87 |     94400 |  1.14 |
 |   Register as Latch        |    0 |     0 |     94400 |  0.00 |
 | F7 Muxes                   |    8 |     0 |     31700 |  0.03 |
 | F8 Muxes                   |    0 |     0 |     15850 |  0.00 |
@@ -57,7 +57,7 @@ Table of Contents
 | 0     |            _ |       Reset |            - |
 | 0     |          Yes |           - |            - |
 | 37    |          Yes |           - |          Set |
-| 239   |          Yes |           - |        Reset |
+| 309   |          Yes |           - |        Reset |
 | 8     |          Yes |         Set |            - |
 | 725   |          Yes |       Reset |            - |
 +-------+--------------+-------------+--------------+
@@ -94,7 +94,7 @@ Table of Contents
 +-----------------------------+------+-------+-----------+-------+
 |          Site Type          | Used | Fixed | Available | Util% |
 +-----------------------------+------+-------+-----------+-------+
-| Bonded IOB                  |   74 |     0 |       285 | 25.96 |
+| Bonded IOB                  |   75 |     0 |       285 | 26.32 |
 | Bonded IPADs                |    0 |     0 |        14 |  0.00 |
 | Bonded OPADs                |    0 |     0 |         8 |  0.00 |
 | PHY_CONTROL                 |    0 |     0 |         6 |  0.00 |
@@ -154,21 +154,21 @@ Table of Contents
 |  Ref Name  | Used | Functional Category |
 +------------+------+---------------------+
 | FDRE       |  725 |        Flop & Latch |
-| LUT6       |  486 |                 LUT |
-| LUT4       |  282 |                 LUT |
-| FDCE       |  239 |        Flop & Latch |
-| LUT5       |  214 |                 LUT |
-| LUT3       |  114 |                 LUT |
+| LUT6       |  496 |                 LUT |
+| LUT4       |  349 |                 LUT |
+| FDCE       |  309 |        Flop & Latch |
+| LUT5       |  244 |                 LUT |
 | LUT2       |   94 |                 LUT |
+| LUT3       |   86 |                 LUT |
 | LUT1       |   65 |                 LUT |
 | CARRY4     |   58 |          CarryLogic |
-| IBUF       |   51 |                  IO |
-| OBUFT      |   42 |                  IO |
+| IBUF       |   52 |                  IO |
+| OBUFT      |   37 |                  IO |
 | FDPE       |   37 |        Flop & Latch |
 | RAMD64E    |   24 |  Distributed Memory |
 | RAMD32     |   24 |  Distributed Memory |
+| OBUF       |   17 |                  IO |
 | RAMS64E    |   16 |  Distributed Memory |
-| OBUF       |   12 |                  IO |
 | RAMS32     |    8 |  Distributed Memory |
 | MUXF7      |    8 |               MuxFx |
 | FDSE       |    8 |        Flop & Latch |
@@ -200,10 +200,10 @@ Table of Contents
 |      Ref Name     | Used |
 +-------------------+------+
 | okWireIn          |    2 |
+| okTriggerOut      |    2 |
+| okTriggerIn       |    2 |
 | xpm_cdc_async_rst |    1 |
 | okWireOut         |    1 |
-| okTriggerOut      |    1 |
-| okTriggerIn       |    1 |
 | okCoreHarness     |    1 |
 | okCore            |    1 |
 | okBTPipeOut       |    1 |

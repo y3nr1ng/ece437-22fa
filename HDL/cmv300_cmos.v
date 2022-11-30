@@ -24,7 +24,10 @@ module cmv300_cmos #(
     parameter CLK_DIVIDER = 2
 ) (
     input               i_clk,
+
     input               i_rst,
+    input               i_start, // request frame
+    output reg          o_done,
 
     // cmv300 control
     output reg          o_clk_in, // 40 MHz
@@ -44,13 +47,32 @@ module cmv300_cmos #(
     output              o_fifo_prog_full,
     
     // debug
-    output      [3:0]   debug_led
+    input               ila_clk,
+    output      [7:0]   debug_led
 );
 
     /*** ila ***/
     ila_0 ila_0_inst (
-        .clk (i_clk),
-        .probe0 ({ write_reset, i_dval, read_reset, i_fifo_read_en, fifo_full, fifo_empty, o_fifo_prog_full }),
+        .clk (ila_clk),
+        .probe0 ({ 
+            i_clk, 
+            
+            // cmv controls
+            i_rst,
+            i_start, 
+            o_done,
+
+            // fifo controls
+            write_reset,    // wr_rst
+            i_dval,         // wr_en
+            read_reset,     // rd_rst
+            i_fifo_read_en, // rd_en
+
+            // fifo flags
+            fifo_full, 
+            fifo_empty, 
+            o_fifo_prog_full
+        }),
         .probe1 ({ i_data, o_data })
     );
     /*** ila ***/
@@ -79,24 +101,22 @@ module cmv300_cmos #(
     /*** tick/clock generator ***/
     
     /*** fifo ***/
-    reg write_reset = 0;
-    reg read_reset = 0;
-
-    wire fifo_full;
-    wire fifo_empty;
+    reg write_reset;
+    reg read_reset;
     
+    wire fifo_full, fifo_empty;
+
     // cmv300 read on negative edge
     wire wr_clk;
     assign wr_clk = ~i_clk_out;
     
-    reg dval_en = 0;
-    assign dval = i_dval & dval_en;
+    assign wr_en = i_dval & i_lval;
     
     fifo_8i32o fifo_cmv_inst (
         // fifo write
         .wr_clk (wr_clk),
         .wr_rst (write_reset),
-        .wr_en (dval),
+        .wr_en (wr_en),
         .din (i_data[9:2]),
 
         // fifo read
@@ -110,74 +130,110 @@ module cmv300_cmos #(
         .empty (fifo_empty),
         .prog_full (o_fifo_prog_full)
     );
-
-    assign debug_led[0] = fifo_full;
-    assign debug_led[1] = fifo_empty;
-    assign debug_led[2] = i_dval;
     /*** fifo ***/
     
     /*** state machine ***/
-    integer state;
-    localparam S_INIT = 0,
-               S_RESET = 10,
-               S_RESET_FINISHED = 11,
-               S_DELAY = 20,
-               S_FRAME_REQ_HIGH = 30,
-               S_FRAME_REQ_LOW = 31;
+    integer state = S_IDLE;
+    localparam S_RESET_0 = 10,  // reset
+               S_RESET_1 = 11,
+               S_RESET_2 = 12,
+               S_RESET_3 = 13, 
+               S_IDLE = 20,     // idle
+               S_START_0 = 30,  // start
+               S_START_1 = 31;
+
+    // signals
+    reg start;
 
     // delay counter
-    reg [15:0] counter_delay = 16'd0;
+    reg [15:0] delay_counter = 16'd0;
     
     always @(posedge i_clk) begin
+        /*** frame operation signals ***/
+        // reset the done signal
+        o_done <= 0;
+        if (o_done) begin
+            start <= 0;
+        end
+
+        if (i_start) begin
+            start <= 1;
+        end
+        /*** frame operation signals ***/
+        
+        /*** state machine ***/
         if (i_rst) begin
-            state <= S_RESET;
+            state <= S_RESET_0;
+            
+            o_sys_res <= 0;
+            o_frame_req <= 0;
+
+            start <= 0;
         end
         case (state) 
-            S_INIT: begin
-                if (i_rst) begin
-                    state <= S_RESET;
-                end
-            end
-
-            S_RESET: begin
-                counter_delay <= 0;
+            S_RESET_0: begin
+                // reset fifo
                 write_reset <= 1;
                 read_reset <= 1;
-                o_sys_res <= 0;
-                dval_en <= 0;
-                if (i_rst == 0) begin
-                    state <= S_RESET_FINISHED;
-                end
+
+                o_sys_res <= 1;
+                o_frame_req <= 0;
+
+                state <= S_RESET_1;
             end
 
-            S_RESET_FINISHED: begin
-                write_reset <= 0;
-                read_reset <= 0;
-                o_sys_res <= 1;
-                state <= S_DELAY;
+            S_RESET_1: begin
+                // pull down SYS_RES_N for 1 tick
+                o_sys_res <= 0;
+                state <= S_RESET_2;
             end
-            
-            S_DELAY: begin
-                if (counter_delay == 16'b0000_1111_1111_1111) begin
-                    state <= S_FRAME_REQ_HIGH; 
+
+            S_RESET_2: begin
+                o_sys_res <= 1;
+                state <= S_RESET_3;
+            end
+
+            S_RESET_3: begin
+                // delay 1 us @ 80 MHz
+                if (delay_counter >= 16'd80) begin
+                    state <= S_IDLE; 
                 end
                 else begin
-                    counter_delay <= counter_delay + 1'b1;
+                    delay_counter <= delay_counter + 1'b1;
                 end
             end
 
-            S_FRAME_REQ_HIGH: begin
-                o_frame_req <= 1;
-                dval_en <= 1;
-                state <= S_FRAME_REQ_LOW;
+            S_IDLE: begin
+                if (start) begin
+                    // release fifo reset
+                    write_reset <= 0;
+                    read_reset <= 0;
+
+                    state <= S_START_0;
+                end
             end
 
-            S_FRAME_REQ_LOW: begin
+            S_START_0: begin
+                o_frame_req <= 1;
+                state <= S_START_1;
+            end
+
+            S_START_1: begin
                 o_frame_req <= 0;
-                state <= S_INIT;
+                o_done <= 1; // TODO need a way to know FVAL ends
+                state <= S_IDLE;
             end
         endcase
+        /*** state machine ***/
     end
-    /*** state machine ***/
+    
+    assign debug_led[7] = start;
+    assign debug_led[6] = o_done;
+    assign debug_led[5] = (state == S_RESET_0) | (state == S_RESET_1) | (state == S_RESET_2) | (state == S_RESET_3);
+    assign debug_led[4] = (state == S_IDLE);
+    assign debug_led[3] = (state == S_START_0) | (state == S_START_1);
+    assign debug_led[2] = write_reset;
+    assign debug_led[1] = read_reset;
+    assign debug_led[0] = 0;
 
 endmodule

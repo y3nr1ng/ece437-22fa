@@ -31,7 +31,8 @@ module ref_clk (
     output      sys_clk,
 
     // references
-    output      clk_80M
+    output      clk_80M,
+    output      clk_120M
 );
 
     IBUFGDS osc_clk(
@@ -44,7 +45,8 @@ module ref_clk (
         .reset (reset),
         .locked (), // whether pll is stable
         .sys_clk (sys_clk), 
-        .clk_80M (clk_80M)
+        .clk_80M (clk_80M),
+        .clk_120M (clk_120M)
     );
     
 endmodule
