@@ -52,6 +52,7 @@ module cmv300_cmos #(
 );
 
     /*** ila ***/
+    /*
     ila_0 ila_0_inst (
         .clk (ila_clk),
         .probe0 ({ 
@@ -75,6 +76,7 @@ module cmv300_cmos #(
         }),
         .probe1 ({ i_data, o_data })
     );
+    */
     /*** ila ***/
     
     /*** tick/clock generator ***/
@@ -101,22 +103,16 @@ module cmv300_cmos #(
     /*** tick/clock generator ***/
     
     /*** fifo ***/
-    reg write_reset;
-    reg read_reset;
+    reg write_reset = 0;
+    reg read_reset = 0;
     
     wire fifo_full, fifo_empty;
-
-    // cmv300 read on negative edge
-    wire wr_clk;
-    assign wr_clk = ~i_clk_out;
-    
-    assign wr_en = i_dval & i_lval;
     
     fifo_8i32o fifo_cmv_inst (
         // fifo write
-        .wr_clk (wr_clk),
+        .wr_clk (~i_clk_out), // NOTE read on negative edge
         .wr_rst (write_reset),
-        .wr_en (wr_en),
+        .wr_en (i_dval),
         .din (i_data[9:2]),
 
         // fifo read
@@ -133,21 +129,25 @@ module cmv300_cmos #(
     /*** fifo ***/
     
     /*** state machine ***/
-    integer state = S_IDLE;
-    localparam S_RESET_0 = 10,  // reset
-               S_RESET_1 = 11,
-               S_RESET_2 = 12,
-               S_RESET_3 = 13, 
-               S_IDLE = 20,     // idle
-               S_START_0 = 30,  // start
-               S_START_1 = 31;
+    integer state = S_RESET_SYS_0;
+    localparam S_RESET_SYS_0 = 10,  // reset sys
+               S_RESET_SYS_1 = 11,
+               S_RESET_SYS_2 = 12,
+               S_RESET_FIFO_0 = 20, // reset fifo
+               S_RESET_FIFO_1 = 21,
+               S_RESET_FIFO_2 = 22, 
+               S_IDLE = 30,     // idle
+               S_START_0 = 40,  // start
+               S_START_1 = 41,
+               S_WAIT_PIXELS_0 = 50; // wait
 
     // signals
     reg start;
 
-    // delay counter
+    // counters
     reg [15:0] delay_counter = 16'd0;
-    
+    reg [31:0] pixel_counter = 32'd0;
+
     always @(posedge i_clk) begin
         /*** frame operation signals ***/
         // reset the done signal
@@ -163,7 +163,7 @@ module cmv300_cmos #(
         
         /*** state machine ***/
         if (i_rst) begin
-            state <= S_RESET_0;
+            state <= S_RESET_SYS_0;
             
             o_sys_res <= 0;
             o_frame_req <= 0;
@@ -171,32 +171,41 @@ module cmv300_cmos #(
             start <= 0;
         end
         case (state) 
-            S_RESET_0: begin
-                // reset fifo
-                write_reset <= 1;
-                read_reset <= 1;
-
+            S_RESET_SYS_0: begin
                 o_sys_res <= 1;
                 o_frame_req <= 0;
-
-                state <= S_RESET_1;
+                state <= S_RESET_SYS_1;
             end
 
-            S_RESET_1: begin
-                // pull down SYS_RES_N for 1 tick
+            S_RESET_SYS_1: begin
                 o_sys_res <= 0;
-                state <= S_RESET_2;
+                state <= S_RESET_SYS_2;
             end
 
-            S_RESET_2: begin
+            S_RESET_SYS_2: begin
                 o_sys_res <= 1;
-                state <= S_RESET_3;
+                state <= S_RESET_FIFO_0;
             end
 
-            S_RESET_3: begin
-                // delay 1 us @ 80 MHz
-                if (delay_counter >= 16'd80) begin
-                    state <= S_IDLE; 
+            S_RESET_FIFO_0: begin
+                write_reset <= 0;
+                read_reset <= 0;
+                state <= S_RESET_FIFO_1;
+            end
+
+            S_RESET_FIFO_1: begin
+                write_reset <= 1;
+                read_reset <= 1;
+                delay_counter <= 0;
+                state <= S_RESET_FIFO_2;
+            end
+
+            S_RESET_FIFO_2: begin
+                if (delay_counter == 16'h0FFF) begin
+                    write_reset <= 0;
+                    read_reset <= 0;
+
+                    state <= S_IDLE;
                 end
                 else begin
                     delay_counter <= delay_counter + 1'b1;
@@ -205,10 +214,6 @@ module cmv300_cmos #(
 
             S_IDLE: begin
                 if (start) begin
-                    // release fifo reset
-                    write_reset <= 0;
-                    read_reset <= 0;
-
                     state <= S_START_0;
                 end
             end
@@ -220,20 +225,28 @@ module cmv300_cmos #(
 
             S_START_1: begin
                 o_frame_req <= 0;
-                o_done <= 1; // TODO need a way to know FVAL ends
-                state <= S_IDLE;
+                pixel_counter <= 32'd0;
+                state <= S_WAIT_PIXELS_0;
+            end
+
+            S_WAIT_PIXELS_0: begin
+                // wait till target amount of pixels are transferred
+                if (pixel_counter == 648 * 488) begin
+                    o_done <= 1;
+                    state <= S_RESET_FIFO_0;
+                end
+                else begin
+                    pixel_counter <= pixel_counter + 1'b1;
+                end
             end
         endcase
         /*** state machine ***/
     end
     
-    assign debug_led[7] = start;
-    assign debug_led[6] = o_done;
-    assign debug_led[5] = (state == S_RESET_0) | (state == S_RESET_1) | (state == S_RESET_2) | (state == S_RESET_3);
-    assign debug_led[4] = (state == S_IDLE);
-    assign debug_led[3] = (state == S_START_0) | (state == S_START_1);
-    assign debug_led[2] = write_reset;
-    assign debug_led[1] = read_reset;
+    assign debug_led[7] = ~start;
+    assign debug_led[6] = ~o_done;
+    assign debug_led[2] = ~write_reset;
+    assign debug_led[1] = ~read_reset;
     assign debug_led[0] = 0;
 
 endmodule

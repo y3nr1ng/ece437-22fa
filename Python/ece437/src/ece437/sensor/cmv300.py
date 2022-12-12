@@ -32,6 +32,8 @@ class CMV300:
         TBD
     """
 
+    BLOCK_SIZE : int = 1024 # [bytes] for USB3
+
     def __init__(
         self,
         fp: OKFrontPanel,
@@ -59,7 +61,7 @@ class CMV300:
     
     def __exit__(self, *exc_args):
         self._device = None
-        
+
     @property
     def shape(self) -> Tuple[int, int]:
         """Get acquired image shape."""
@@ -67,7 +69,7 @@ class CMV300:
 
     def reset(self) -> None:
         """Reset the controller."""
-        logger.debug("reset CMV300 sequencer")
+        logger.info("reset CMV300 sequencer")
         self._device.SetWireInValue(
             self._endpoints.RESET, 1 << self._endpoints.RESET_MASK
         )
@@ -83,8 +85,7 @@ class CMV300:
     def get_image(self) -> Any:
         # build buffer
         ny, nx = self._shape
-        block_size = 1024
-        buf = bytearray(block_size * 308)
+        buf = bytearray(self.BLOCK_SIZE * 308)
 
         self._start_acquire()
 
@@ -95,10 +96,11 @@ class CMV300:
                 break
             time.sleep(self._timeout)
         else:
-            raise TimeoutError(f"get_image timeout after {self._timeout * 1000:d} ms")
-
+            total_timeout = self._timeout * self._max_retires * 1000
+            raise TimeoutError(f"get_image timeout after {int(total_timeout)} ms")
+        
         # start pulling image from pipe
-        n_bytes_read = self._device.ReadFromBlockPipeOut(0xa0, 1024, buf)
+        n_bytes_read = self._device.ReadFromBlockPipeOut(self._endpoints.PIPE, self.BLOCK_SIZE, buf)
         logger.info(f'ret={n_bytes_read}')
 
         buf = buf[:nx * (ny-2)]
