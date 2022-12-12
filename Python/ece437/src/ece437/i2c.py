@@ -9,12 +9,18 @@ from ece437.ok import OKFrontPanel
 logger = logging.getLogger(__name__)
 
 class BaseI2CController(ABC):
+    def __init__(self, fp: OKFrontPanel) -> None:
+        self._fp = fp
+        self._device = None
+
     def __enter__(self):
+        self._device = self._fp._device
+
         self.reset()
         return self
 
     def __exit__(self, *exc_args):
-        pass
+        self._device = None
     
     @abstractmethod
     def reset(self):
@@ -65,9 +71,8 @@ class I2CController(BaseI2CController):
         max_timeout: int = 500,
         max_buffer_length: int = 64
     ) -> None:
-        # we will use our private implementation for now
-        self._device = fp._device
-
+        super().__init__(fp)
+        
         self._endpoints = endpoints
 
         self._max_retires = max_retries

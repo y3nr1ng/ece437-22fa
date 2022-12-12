@@ -7,3 +7,6 @@ dependencies:
   # linter and style check
   - black
   - flake8
+  # plot
+  - matplotlib
+  - numpy
