@@ -26,8 +26,9 @@ module cmv300_cmos #(
     input               i_clk,
 
     input               i_rst,
-    input               i_start, // request frame
-    output reg          o_done,
+    output reg          o_ready,    // ready for frame
+    input               i_start,    // request new frame
+    output reg          o_done,     // acquired a frame
 
     // cmv300 control
     output reg          o_clk_in, // 40 MHz
@@ -103,21 +104,26 @@ module cmv300_cmos #(
     /*** tick/clock generator ***/
     
     /*** fifo ***/
-    reg write_reset = 0;
-    reg read_reset = 0;
+    reg wrrd_rst = 0;
     
+    wire wr_rst_busy, rd_rst_busy, wrrd_rst_busy;
     wire fifo_full, fifo_empty;
     
+    assign wrrd_rst_busy = wr_rst_busy | rd_rst_busy;
+
     fifo_8i32o fifo_cmv_inst (
+        // reset
+        .rst (wrrd_rst),
+
         // fifo write
         .wr_clk (~i_clk_out), // NOTE read on negative edge
-        .wr_rst (write_reset),
+        .wr_rst_busy (wr_rst_busy),
         .wr_en (i_dval),
         .din (i_data[9:2]),
 
         // fifo read
         .rd_clk (i_fifo_read_clk),
-        .rd_rst (read_reset),
+        .rd_rst_busy (rd_rst_busy),
         .rd_en (i_fifo_read_en),
         .dout (o_data),
 
@@ -136,14 +142,16 @@ module cmv300_cmos #(
                S_RESET_FIFO_0 = 20, // reset fifo
                S_RESET_FIFO_1 = 21,
                S_RESET_FIFO_2 = 22, 
-               S_IDLE = 30,     // idle
+               S_IDLE_0 = 30,     // idle
+               S_IDLE_1 = 31,      
                S_START_0 = 40,  // start
                S_START_1 = 41,
-               S_WAIT_PIXELS_0 = 50; // wait
+               S_WAIT_PIXELS_0 = 50, // wait
+               S_WAIT_PIXELS_1 = 51;
 
     // signals
     reg start;
-
+    
     // counters
     reg [15:0] delay_counter = 16'd0;
     reg [31:0] pixel_counter = 32'd0;
@@ -168,85 +176,92 @@ module cmv300_cmos #(
             o_sys_res <= 0;
             o_frame_req <= 0;
 
+            o_ready <= 0;
             start <= 0;
         end
-        case (state) 
-            S_RESET_SYS_0: begin
-                o_sys_res <= 1;
-                o_frame_req <= 0;
-                state <= S_RESET_SYS_1;
-            end
-
-            S_RESET_SYS_1: begin
-                o_sys_res <= 0;
-                state <= S_RESET_SYS_2;
-            end
-
-            S_RESET_SYS_2: begin
-                o_sys_res <= 1;
-                state <= S_RESET_FIFO_0;
-            end
-
-            S_RESET_FIFO_0: begin
-                write_reset <= 0;
-                read_reset <= 0;
-                state <= S_RESET_FIFO_1;
-            end
-
-            S_RESET_FIFO_1: begin
-                write_reset <= 1;
-                read_reset <= 1;
-                delay_counter <= 0;
-                state <= S_RESET_FIFO_2;
-            end
-
-            S_RESET_FIFO_2: begin
-                if (delay_counter == 16'h0FFF) begin
-                    write_reset <= 0;
-                    read_reset <= 0;
-
-                    state <= S_IDLE;
+        else begin
+            case (state) 
+                S_RESET_SYS_0: begin
+                    o_sys_res <= 1;
+                    o_frame_req <= 0;
+                    state <= S_RESET_SYS_1;
                 end
-                else begin
-                    delay_counter <= delay_counter + 1'b1;
-                end
-            end
 
-            S_IDLE: begin
-                if (start) begin
-                    state <= S_START_0;
+                S_RESET_SYS_1: begin
+                    o_sys_res <= 0;
+                    state <= S_RESET_SYS_2;
                 end
-            end
 
-            S_START_0: begin
-                o_frame_req <= 1;
-                state <= S_START_1;
-            end
-
-            S_START_1: begin
-                o_frame_req <= 0;
-                pixel_counter <= 32'd0;
-                state <= S_WAIT_PIXELS_0;
-            end
-
-            S_WAIT_PIXELS_0: begin
-                // wait till target amount of pixels are transferred
-                if (pixel_counter == 648 * 488) begin
-                    o_done <= 1;
-                    state <= S_RESET_FIFO_0;
+                S_RESET_SYS_2: begin
+                    o_sys_res <= 1;
+                    state <= S_IDLE_0;
                 end
-                else begin
-                    pixel_counter <= pixel_counter + 1'b1;
+
+                S_IDLE_0: begin
+                    o_ready <= 1;
+                    state <= S_IDLE_1;
                 end
-            end
-        endcase
-        /*** state machine ***/
+
+                S_IDLE_1: begin
+                    if (start) begin
+                        o_ready <= 0;
+                        state <= S_RESET_FIFO_0;
+                    end
+                end
+
+                S_RESET_FIFO_0: begin
+                    wrrd_rst <= 0;
+                    state <= S_RESET_FIFO_1;
+                end
+
+                S_RESET_FIFO_1: begin
+                    wrrd_rst <= 1;
+                    if (wrrd_rst_busy) begin
+                        state <= S_RESET_FIFO_2;
+                    end
+                end
+
+                S_RESET_FIFO_2: begin
+                    wrrd_rst <= 0;
+                    if (!wrrd_rst_busy) begin
+                        state <= S_START_0;
+                    end
+                end
+
+                S_START_0: begin
+                    o_frame_req <= 1;
+                    state <= S_START_1;
+                end
+
+                S_START_1: begin
+                    o_frame_req <= 0;
+                    pixel_counter <= 32'd0;
+                    //state <= S_WAIT_PIXELS_0;
+                    state <= S_IDLE_0;
+                end
+
+                // TODO write in additional blanks to fill in integer multiple blocks
+                S_WAIT_PIXELS_0: begin
+                    if (pixel_counter == 648 * 488) begin
+                        o_done <= 1;
+                        state <= S_IDLE_0;
+                    end
+                    else begin
+                        pixel_counter <= pixel_counter + 1'b1;
+                    end
+                end
+            endcase
+            /*** state machine ***/
+        end
     end
     
-    assign debug_led[7] = ~start;
-    assign debug_led[6] = ~o_done;
-    assign debug_led[2] = ~write_reset;
-    assign debug_led[1] = ~read_reset;
-    assign debug_led[0] = 0;
+    assign debug_led[7] = ~o_ready;
+    assign debug_led[6] = ~start;
+    assign debug_led[5] = ~o_done;
+    assign debug_led[4] = 1;
+    assign debug_led[3] = 1;
+    assign debug_led[2] = ~wrrd_rst;
+    assign debug_led[1] = ~(wr_rst_busy | rd_rst_busy);
+    assign debug_led[0] = ~o_fifo_prog_full;
 
 endmodule

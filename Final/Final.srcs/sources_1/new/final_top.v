@@ -122,7 +122,8 @@ module final_top(
     //  0: spi done
     okTriggerOut to_60 (.okHE (okHE), .okEH (okEHx[ 1*65 +: 65 ]),  .ep_clk(ref_clk_80M),   .ep_addr (8'h60), .ep_trigger (to_60_wire));
     // trigger out, 0x61
-    //  0: cmv done
+    //  0: cmv ready
+    //  1: cmv done
     okTriggerOut to_61 (.okHE (okHE), .okEH (okEHx[ 2*65 +: 65 ]),  .ep_clk(ref_clk_80M),   .ep_addr (8'h61), .ep_trigger (to_61_wire));
     // pipe
     okBTPipeOut po_a0  (.okHE (okHE), .okEH (okEHx[ 3*65 +: 65 ]),                          .ep_addr (8'ha0), .ep_datain (po_a0_wire_datain), 
@@ -195,8 +196,9 @@ module final_top(
         .i_clk (ref_clk_80M),
 
         .i_rst (reset_ref_clk_1),
+        .o_ready (to_61_wire[0]),
         .i_start (ti_41_wire[0]),
-        .o_done (to_61_wire[0]),
+        .o_done (to_61_wire[1]),
         
         .o_clk_in (CMV300_CLK_IN),
         .o_sys_res (CMV300_SYS_RES_N),

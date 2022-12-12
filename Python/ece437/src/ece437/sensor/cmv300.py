@@ -19,6 +19,7 @@ CMV300Endpoints = namedtuple(
         "PIPE",
         "RESET_MASK",
         "START_MASK",
+        'READY_MASK',
         "DONE_MASK",
     ],
 )
@@ -78,6 +79,7 @@ class CMV300:
         self._device.UpdateWireIns()
 
         self._configure_bus()
+        
 
     def set_shape(self) -> None:
         pass
@@ -87,21 +89,23 @@ class CMV300:
         ny, nx = self._shape
         buf = bytearray(self.BLOCK_SIZE * 308)
 
+        self._wait_sys_ready()
+
         self._start_acquire()
 
-        # wait for the acquisition to finish
-        for _ in range(self._max_retires):
+        # start pulling image from pipe
+        n_bytes_read = self._device.ReadFromBlockPipeOut(self._endpoints.PIPE, self.BLOCK_SIZE, buf)
+        logger.info(f'ret={n_bytes_read}')
+
+        # wait acquisition finish
+        for i in range(self._max_retires):
             if self._is_acquired():
-                logger.debug(".. [TO] done")
+                logger.info(".. [acquired]")
                 break
             time.sleep(self._timeout)
         else:
             total_timeout = self._timeout * self._max_retires * 1000
-            raise TimeoutError(f"get_image timeout after {int(total_timeout)} ms")
-        
-        # start pulling image from pipe
-        n_bytes_read = self._device.ReadFromBlockPipeOut(self._endpoints.PIPE, self.BLOCK_SIZE, buf)
-        logger.info(f'ret={n_bytes_read}')
+            raise TimeoutError(f"get_image[acquired] timeout after {int(total_timeout)} ms")
 
         buf = buf[:nx * (ny-2)]
         im = np.frombuffer(buf, dtype=np.uint8)
@@ -121,6 +125,22 @@ class CMV300:
         for reg_addr, reg_val in configs.items():
             logger.debug(".. [{reg_addr:02x}]={reg_val}")
             self._spi.write_to(reg_addr, [reg_val])
+
+    def _wait_sys_ready(self) -> None:
+        for _ in range(self._max_retires):
+            if self._is_ready():
+                logger.info(".. [ready]")
+                break
+            time.sleep(self._timeout)
+        else:
+            total_timeout = self._timeout * self._max_retires * 1000
+            raise TimeoutError(f"wait_sys_ready timeout after {int(total_timeout)} ms")
+
+    def _is_ready(self) -> bool:
+        self._device.UpdateTriggerOuts()
+        return self._device.IsTriggered(
+            self._endpoints.TRIGGER_OUT, 1 << self._endpoints.READY_MASK
+        )
 
     def _start_acquire(self) -> None:
         self._device.ActivateTriggerIn(
