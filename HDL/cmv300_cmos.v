@@ -49,7 +49,8 @@ module cmv300_cmos #(
     
     // debug
     input               ila_clk,
-    output      [7:0]   debug_led
+    output      [7:0]   xem_led,
+    output      [3:0]   board_led
 );
 
     /*** ila ***/
@@ -106,10 +107,10 @@ module cmv300_cmos #(
     /*** fifo ***/
     reg wrrd_rst = 0;
     
-    wire wr_rst_busy, rd_rst_busy, wrrd_rst_busy;
+    wire wr_rst_busy, rd_rst_busy;
+    reg fifo_en = 0;
+
     wire fifo_full, fifo_empty;
-    
-    assign wrrd_rst_busy = wr_rst_busy | rd_rst_busy;
 
     fifo_8i32o fifo_cmv_inst (
         // reset
@@ -118,30 +119,32 @@ module cmv300_cmos #(
         // fifo write
         .wr_clk (~i_clk_out), // NOTE read on negative edge
         .wr_rst_busy (wr_rst_busy),
-        .wr_en (i_dval),
+        .wr_en (i_dval & fifo_en),
         .din (i_data[9:2]),
 
         // fifo read
         .rd_clk (i_fifo_read_clk),
         .rd_rst_busy (rd_rst_busy),
-        .rd_en (i_fifo_read_en),
+        .rd_en (i_fifo_read_en & fifo_en),
         .dout (o_data),
 
         // signal
         .full (fifo_full),
-        .empty (fifo_empty),
+        .empty (),
         .prog_full (o_fifo_prog_full)
     );
     /*** fifo ***/
     
     /*** state machine ***/
-    integer state = S_RESET_SYS_0;
+    integer state;
     localparam S_RESET_SYS_0 = 10,  // reset sys
                S_RESET_SYS_1 = 11,
                S_RESET_SYS_2 = 12,
                S_RESET_FIFO_0 = 20, // reset fifo
                S_RESET_FIFO_1 = 21,
                S_RESET_FIFO_2 = 22, 
+               S_RESET_FIFO_3 = 23,
+               S_RESET_FIFO_4 = 24,
                S_IDLE_0 = 30,     // idle
                S_IDLE_1 = 31,      
                S_START_0 = 40,  // start
@@ -151,12 +154,11 @@ module cmv300_cmos #(
 
     // signals
     reg start;
-    
-    // counters
-    reg [15:0] delay_counter = 16'd0;
-    reg [31:0] pixel_counter = 32'd0;
 
-    always @(posedge i_clk) begin
+    reg [2:0]   delay_counter;
+    reg [31:0]  pixel_counter;
+
+    always @(posedge o_clk_in) begin
         /*** frame operation signals ***/
         // reset the done signal
         o_done <= 0;
@@ -173,6 +175,9 @@ module cmv300_cmos #(
         if (i_rst) begin
             state <= S_RESET_SYS_0;
             
+            wrrd_rst <= 0;
+            fifo_en <= 0;
+
             o_sys_res <= 0;
             o_frame_req <= 0;
 
@@ -210,20 +215,42 @@ module cmv300_cmos #(
                 end
 
                 S_RESET_FIFO_0: begin
-                    wrrd_rst <= 0;
+                    wrrd_rst <= 1;
+                    fifo_en <= 0; // NOTE ensure *_en are disabled during reset
+                    delay_counter <= 8'd0;
                     state <= S_RESET_FIFO_1;
                 end
 
+                // NOTE fifo reset needs to hold over 6 skewed clock cycles
                 S_RESET_FIFO_1: begin
-                    wrrd_rst <= 1;
-                    if (wrrd_rst_busy) begin
+                    if (delay_counter >= 3'd4) begin
                         state <= S_RESET_FIFO_2;
+                    end
+                    else begin
+                        delay_counter <= delay_counter + 1'b1;
                     end
                 end
 
                 S_RESET_FIFO_2: begin
-                    wrrd_rst <= 0;
-                    if (!wrrd_rst_busy) begin
+                    // wait till both *_rst_busy are HI...
+                    if (wr_rst_busy && rd_rst_busy) begin
+                        wrrd_rst <= 0;
+                        state <= S_RESET_FIFO_3;
+                    end
+                end
+
+                S_RESET_FIFO_3: begin
+                    // ... release rst, wait till *_rst_busy are LO
+                    if (!wr_rst_busy && !rd_rst_busy) begin
+                        state <= S_RESET_FIFO_4;
+                    end
+                end
+
+                S_RESET_FIFO_4: begin
+                    // wait till FULL is LO
+                    // NOTE since FULL_FLAG_RESET_VALUE=1
+                    if (!fifo_full) begin
+                        fifo_en <= 1;
                         state <= S_START_0;
                     end
                 end
@@ -235,19 +262,20 @@ module cmv300_cmos #(
 
                 S_START_1: begin
                     o_frame_req <= 0;
-                    pixel_counter <= 32'd0;
-                    //state <= S_WAIT_PIXELS_0;
-                    state <= S_IDLE_0;
+                    pixel_counter <= 0;
+                    state <= S_WAIT_PIXELS_0;
                 end
 
                 // TODO write in additional blanks to fill in integer multiple blocks
                 S_WAIT_PIXELS_0: begin
-                    if (pixel_counter == 648 * 488) begin
+                    if (pixel_counter >= 648 * 488) begin
                         o_done <= 1;
                         state <= S_IDLE_0;
                     end
                     else begin
-                        pixel_counter <= pixel_counter + 1'b1;
+                        if (i_dval) begin
+                            pixel_counter <= pixel_counter + 1'b1;
+                        end
                     end
                 end
             endcase
@@ -255,13 +283,18 @@ module cmv300_cmos #(
         end
     end
     
-    assign debug_led[7] = ~o_ready;
-    assign debug_led[6] = ~start;
-    assign debug_led[5] = ~o_done;
-    assign debug_led[4] = 1;
-    assign debug_led[3] = 1;
-    assign debug_led[2] = ~wrrd_rst;
-    assign debug_led[1] = ~(wr_rst_busy | rd_rst_busy);
-    assign debug_led[0] = ~o_fifo_prog_full;
+    assign xem_led[7] = 1;
+    assign xem_led[6] = 0;
+    assign xem_led[5] = 0;
+    assign xem_led[4] = ~wrrd_rst;
+    assign xem_led[3] = ~wr_rst_busy;
+    assign xem_led[2] = ~rd_rst_busy;
+    assign xem_led[1] = ~fifo_full;
+    assign xem_led[0] = ~o_fifo_prog_full;
+
+    assign board_led[3] = o_ready;
+    assign board_led[2] = start;
+    assign board_led[1] = o_done;
+    assign board_led[0] = 0;
 
 endmodule

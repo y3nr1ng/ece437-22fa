@@ -78,8 +78,10 @@ class CMV300:
         self._device.SetWireInValue(self._endpoints.RESET, 0x00)
         self._device.UpdateWireIns()
 
-        self._configure_bus()
-        
+        # configure bus over spi, need this to use CMOS output
+        self._configure_bus()       
+
+        self._wait_sys_ready()
 
     def set_shape(self) -> None:
         pass
@@ -88,18 +90,17 @@ class CMV300:
         # build buffer
         ny, nx = self._shape
         buf = bytearray(self.BLOCK_SIZE * 308)
-
-        self._wait_sys_ready()
-
+        
         self._start_acquire()
 
         # start pulling image from pipe
         n_bytes_read = self._device.ReadFromBlockPipeOut(self._endpoints.PIPE, self.BLOCK_SIZE, buf)
-        logger.info(f'ret={n_bytes_read}')
+        if n_bytes_read < 0:
+            raise TimeoutError(f'get_image[ReadBTPipe] timeout, retval={n_bytes_read}')
 
         # wait acquisition finish
         for i in range(self._max_retires):
-            if self._is_acquired():
+            if True or self._is_acquired():
                 logger.info(".. [acquired]")
                 break
             time.sleep(self._timeout)
@@ -113,6 +114,22 @@ class CMV300:
 
         return im
 
+    def _wait_sys_ready(self) -> None:
+        for _ in range(self._max_retires):
+            if self._is_ready():
+                logger.info(".. [sys_ready]")
+                break
+            time.sleep(self._timeout)
+        else:
+            total_timeout = self._timeout * self._max_retires * 1000
+            raise TimeoutError(f"wait_sys_ready timeout after {int(total_timeout)} ms")
+
+    def _is_ready(self) -> bool:
+        self._device.UpdateTriggerOuts()
+        return self._device.IsTriggered(
+            self._endpoints.TRIGGER_OUT, 1 << self._endpoints.READY_MASK
+        )
+
     def _configure_bus(self) -> None:
         """
         These are bare minimum configurations for CMOS to work.
@@ -125,22 +142,6 @@ class CMV300:
         for reg_addr, reg_val in configs.items():
             logger.debug(".. [{reg_addr:02x}]={reg_val}")
             self._spi.write_to(reg_addr, [reg_val])
-
-    def _wait_sys_ready(self) -> None:
-        for _ in range(self._max_retires):
-            if self._is_ready():
-                logger.info(".. [ready]")
-                break
-            time.sleep(self._timeout)
-        else:
-            total_timeout = self._timeout * self._max_retires * 1000
-            raise TimeoutError(f"wait_sys_ready timeout after {int(total_timeout)} ms")
-
-    def _is_ready(self) -> bool:
-        self._device.UpdateTriggerOuts()
-        return self._device.IsTriggered(
-            self._endpoints.TRIGGER_OUT, 1 << self._endpoints.READY_MASK
-        )
 
     def _start_acquire(self) -> None:
         self._device.ActivateTriggerIn(
