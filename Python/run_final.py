@@ -2,6 +2,12 @@ import os
 
 os.environ["OKFP_ROOT"] = "C:/Users/sean9/Downloads/FrontPanelUSB"
 
+import PySide2
+
+dirname = os.path.dirname(PySide2.__file__)
+plugin_path = os.path.join(dirname, 'plugins', 'platforms')
+os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = plugin_path
+
 import logging
 import sys
 from ece437.ok import OKFrontPanel
@@ -27,9 +33,10 @@ def main():
     path = "C:/Users/sean9/ECE437/Final/Final.runs/impl_1/final_top.bit"
     fp = OKFrontPanel(firmware_path=path)
 
-    app = QApplication(sys.argv)
-    w = MainWindow()
-    app.exec_()
+    with fp:
+        app = QApplication(sys.argv)
+        w = MainWindow(fp)
+        app.exec_()
 
 
 if __name__ == "__main__":
