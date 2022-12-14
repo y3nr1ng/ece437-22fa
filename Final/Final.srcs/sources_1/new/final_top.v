@@ -117,14 +117,14 @@ module final_top(
     okTriggerIn  ti_40 (.okHE (okHE),                               .ep_clk(ref_clk_80M),   .ep_addr (8'h40), .ep_trigger (ti_40_wire));
     // trigger in, 0x41
     //  0: cmv start
-    okTriggerIn  ti_41 (.okHE (okHE),                               .ep_clk(CMV300_CLK_OUT),   .ep_addr (8'h41), .ep_trigger (ti_41_wire));
+    okTriggerIn  ti_41 (.okHE (okHE),                               .ep_clk(CMV300_CLK_IN),   .ep_addr (8'h41), .ep_trigger (ti_41_wire));
     // trigger out, 0x60
     //  0: spi done
     okTriggerOut to_60 (.okHE (okHE), .okEH (okEHx[ 1*65 +: 65 ]),  .ep_clk(ref_clk_80M),   .ep_addr (8'h60), .ep_trigger (to_60_wire));
     // trigger out, 0x61
     //  0: cmv ready
     //  1: cmv done
-    okTriggerOut to_61 (.okHE (okHE), .okEH (okEHx[ 2*65 +: 65 ]),  .ep_clk(CMV300_CLK_OUT),   .ep_addr (8'h61), .ep_trigger (to_61_wire));
+    okTriggerOut to_61 (.okHE (okHE), .okEH (okEHx[ 2*65 +: 65 ]),  .ep_clk(CMV300_CLK_IN),   .ep_addr (8'h61), .ep_trigger (to_61_wire));
     // pipe
     okBTPipeOut po_a0  (.okHE (okHE), .okEH (okEHx[ 3*65 +: 65 ]),                          .ep_addr (8'ha0), .ep_datain (po_a0_wire_datain), 
                                                                                                               .ep_read(cmv300_fifo_read_en), 
@@ -175,17 +175,19 @@ module final_top(
     /*** cmv300 spi ***/
     
     /*** cmv300 data ***/
+    wire        cmv300_clk;
+    
     wire [31:0] cmv300_fifo_data;
     wire        cmv300_fifo_prog_full;
     wire        cmv300_fifo_read_en;
     
     wire reset_async_1;
-    wire reset_ref_clk_1;
+    wire reset_ref_clk_1; // TODO rename to follow the clock in use
     
     assign reset_async_1 = wi_00_wire[1];
     
     sync_reset sync_reset_inst_1 (
-        .i_clk (CMV300_CLK_OUT),
+        .i_clk (CMV300_CLK_IN),
         .i_async_reset (reset_async_1),
         .o_sync_reset (reset_ref_clk_1)
     );

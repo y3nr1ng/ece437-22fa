@@ -223,6 +223,7 @@ set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_D[9]}]
 # MC1-23 
 set_property PACKAGE_PIN U6 [get_ports {CMV300_Line_valid}]
 set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_Line_valid}]
+set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets CMV300_Line_valid_IBUF]
 # MC1-2
 set_property PACKAGE_PIN V5 [get_ports {CMV300_Data_valid}]
 set_property IOSTANDARD LVCMOS25 [get_ports {CMV300_Data_valid}]

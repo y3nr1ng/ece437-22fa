@@ -117,7 +117,7 @@ class CMV300:
     def _wait_sys_ready(self) -> None:
         for _ in range(self._max_retires):
             if self._is_ready():
-                logger.info(".. [sys_ready]")
+                logger.info("wait_sys_ready TRUE")
                 break
             time.sleep(self._timeout)
         else:
@@ -147,7 +147,7 @@ class CMV300:
         self._device.ActivateTriggerIn(
             self._endpoints.TRIGGER_IN, self._endpoints.START_MASK
         )
-        logger.debug(".. start acquire frame")
+        logger.debug("start acquiring frame")
 
     def _is_acquired(self) -> bool:
         self._device.UpdateTriggerOuts()

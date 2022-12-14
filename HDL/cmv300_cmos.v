@@ -134,6 +134,19 @@ module cmv300_cmos #(
         .prog_full (o_fifo_prog_full)
     );
     /*** fifo ***/
+
+    /*** scanline counter ***/
+    reg [8:0] line_counter = 0;
+    reg line_counter_rst = 0;
+    
+    always @(posedge i_lval or posedge line_counter_rst) begin
+        if (line_counter_rst) begin
+            line_counter <= 0;
+        end
+        else begin
+            line_counter <= line_counter + 1'b1;
+        end
+    end
     
     /*** state machine ***/
     integer state;
@@ -156,7 +169,6 @@ module cmv300_cmos #(
     reg start;
 
     reg [2:0]   delay_counter;
-    reg [31:0]  pixel_counter;
 
     always @(posedge o_clk_in) begin
         /*** frame operation signals ***/
@@ -187,6 +199,8 @@ module cmv300_cmos #(
         else begin
             case (state) 
                 S_RESET_SYS_0: begin
+                    board_led_state <= 1; //DEBUG
+
                     o_sys_res <= 1;
                     o_frame_req <= 0;
                     state <= S_RESET_SYS_1;
@@ -203,6 +217,8 @@ module cmv300_cmos #(
                 end
 
                 S_IDLE_0: begin
+                    board_led_state <= 2; //DEBUG
+
                     o_ready <= 1;
                     state <= S_IDLE_1;
                 end
@@ -215,6 +231,8 @@ module cmv300_cmos #(
                 end
 
                 S_RESET_FIFO_0: begin
+                    board_led_state <= 3; //DEBUG
+
                     wrrd_rst <= 1;
                     fifo_en <= 0; // NOTE ensure *_en are disabled during reset
                     delay_counter <= 8'd0;
@@ -256,26 +274,26 @@ module cmv300_cmos #(
                 end
 
                 S_START_0: begin
+                    board_led_state <= 4; //DEBUG
+
                     o_frame_req <= 1;
+                    line_counter_rst <= 1;
                     state <= S_START_1;
                 end
 
                 S_START_1: begin
                     o_frame_req <= 0;
-                    pixel_counter <= 0;
+                    line_counter_rst <= 0;
                     state <= S_WAIT_PIXELS_0;
                 end
 
                 // TODO write in additional blanks to fill in integer multiple blocks
                 S_WAIT_PIXELS_0: begin
-                    if (pixel_counter >= 648 * 488) begin
+                    board_led_state <= 5; //DEBUG
+
+                    if (line_counter >= 488) begin
                         o_done <= 1;
                         state <= S_IDLE_0;
-                    end
-                    else begin
-                        if (i_dval) begin
-                            pixel_counter <= pixel_counter + 1'b1;
-                        end
                     end
                 end
             endcase
@@ -292,9 +310,7 @@ module cmv300_cmos #(
     assign xem_led[1] = ~fifo_full;
     assign xem_led[0] = ~o_fifo_prog_full;
 
-    assign board_led[3] = o_ready;
-    assign board_led[2] = start;
-    assign board_led[1] = o_done;
-    assign board_led[0] = 0;
+    reg [3:0] board_led_state = 0;
+    assign board_led = board_led_state;
 
 endmodule
