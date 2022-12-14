@@ -1,5 +1,9 @@
 name: ece437
 
+channels:
+  - default
+  - conda-forge
+  
 dependencies:
   - python=3.6
   - ipykernel
