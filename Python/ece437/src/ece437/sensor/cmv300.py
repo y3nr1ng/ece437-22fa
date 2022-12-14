@@ -89,8 +89,9 @@ class CMV300:
     def get_image(self) -> Any:
         # build buffer
         ny, nx = self._shape
-        buf = bytearray(self.BLOCK_SIZE * 308)
-        
+        #buf = bytearray(self.BLOCK_SIZE * 308)
+        n_bytes = nx * ny # NOTE uint8
+        buf = bytearray(self.round_to_blocksize(n_bytes))
         self._start_acquire()
 
         # start pulling image from pipe
@@ -108,11 +109,19 @@ class CMV300:
             total_timeout = self._timeout * self._max_retires * 1000
             raise TimeoutError(f"get_image[acquired] timeout after {int(total_timeout)} ms")
 
-        buf = buf[:nx * (ny-2)]
+        #buf = buf[:nx * (ny-2)]
+        buf = buf[:n_bytes]
         im = np.frombuffer(buf, dtype=np.uint8)
-        im = np.reshape(im, (ny-2, nx))
+        #im = np.reshape(im, (ny-2, nx))
+        im = np.reshape(im, (ny, nx))
+
+        self._wait_sys_ready()
 
         return im
+
+    @classmethod
+    def round_to_blocksize(cls, bytes) -> int:
+        return cls.BLOCK_SIZE * round(bytes / cls.BLOCK_SIZE)
 
     def _wait_sys_ready(self) -> None:
         for _ in range(self._max_retires):

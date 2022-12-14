@@ -110,7 +110,9 @@ module cmv300_cmos #(
     wire wr_rst_busy, rd_rst_busy;
     reg fifo_en = 0;
 
-    wire fifo_full, fifo_empty;
+    reg fifo_wr_en_bypass = 0;
+
+    wire fifo_full;
 
     fifo_8i32o fifo_cmv_inst (
         // reset
@@ -119,7 +121,7 @@ module cmv300_cmos #(
         // fifo write
         .wr_clk (~i_clk_out), // NOTE read on negative edge
         .wr_rst_busy (wr_rst_busy),
-        .wr_en (i_dval & fifo_en),
+        .wr_en ((i_dval | fifo_wr_en_bypass) & fifo_en),
         .din (i_data[9:2]),
 
         // fifo read
@@ -136,10 +138,10 @@ module cmv300_cmos #(
     /*** fifo ***/
 
     /*** scanline counter ***/
-    reg [8:0] line_counter = 0;
-    reg line_counter_rst = 0;
-    
-    always @(posedge i_lval or posedge line_counter_rst) begin
+    reg [8:0]   line_counter = 0;
+    reg         line_counter_rst = 0;
+
+    always @(negedge i_lval or posedge line_counter_rst) begin
         if (line_counter_rst) begin
             line_counter <= 0;
         end
@@ -162,13 +164,14 @@ module cmv300_cmos #(
                S_IDLE_1 = 31,      
                S_START_0 = 40,  // start
                S_START_1 = 41,
+               S_START_2 = 42,
                S_WAIT_PIXELS_0 = 50, // wait
                S_WAIT_PIXELS_1 = 51;
 
     // signals
     reg start;
 
-    reg [2:0]   delay_counter;
+    reg [7:0]   delay_counter;
 
     always @(posedge o_clk_in) begin
         /*** frame operation signals ***/
@@ -192,6 +195,8 @@ module cmv300_cmos #(
 
             o_sys_res <= 0;
             o_frame_req <= 0;
+
+            line_counter_rst <= 0;
 
             o_ready <= 0;
             start <= 0;
@@ -235,13 +240,13 @@ module cmv300_cmos #(
 
                     wrrd_rst <= 1;
                     fifo_en <= 0; // NOTE ensure *_en are disabled during reset
-                    delay_counter <= 8'd0;
+                    delay_counter <= 0;
                     state <= S_RESET_FIFO_1;
                 end
 
                 // NOTE fifo reset needs to hold over 6 skewed clock cycles
                 S_RESET_FIFO_1: begin
-                    if (delay_counter >= 3'd4) begin
+                    if (delay_counter >= 6) begin
                         state <= S_RESET_FIFO_2;
                     end
                     else begin
@@ -287,28 +292,35 @@ module cmv300_cmos #(
                     state <= S_WAIT_PIXELS_0;
                 end
 
-                // TODO write in additional blanks to fill in integer multiple blocks
+                // wait till all scanlines are retrieved
                 S_WAIT_PIXELS_0: begin
                     board_led_state <= 5; //DEBUG
 
                     if (line_counter >= 488) begin
+                        delay_counter <= 0;
+                        fifo_wr_en_bypass <= 1;
+                        state <= S_WAIT_PIXELS_1;
+                    end
+                end
+
+                // wait a couple more ticks, pad till next block size
+                S_WAIT_PIXELS_1: begin
+                    if (delay_counter >= 192) begin
+                        fifo_wr_en_bypass <= 0;
                         o_done <= 1;
                         state <= S_IDLE_0;
                     end
+                    else begin
+                        delay_counter <= delay_counter + 1; 
+                    end
                 end
+
             endcase
             /*** state machine ***/
         end
     end
     
-    assign xem_led[7] = 1;
-    assign xem_led[6] = 0;
-    assign xem_led[5] = 0;
-    assign xem_led[4] = ~wrrd_rst;
-    assign xem_led[3] = ~wr_rst_busy;
-    assign xem_led[2] = ~rd_rst_busy;
-    assign xem_led[1] = ~fifo_full;
-    assign xem_led[0] = ~o_fifo_prog_full;
+    assign xem_led = ~line_counter[8:1];
 
     reg [3:0] board_led_state = 0;
     assign board_led = board_led_state;
