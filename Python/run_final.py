@@ -32,7 +32,7 @@ def setup_logger(level=logging.WARNING):
 
 
 def main():
-    setup_logger(logging.ERROR)
+    setup_logger(logging.DEBUG)
 
     path = "C:/Users/sean9/ECE437/Final/Final.runs/impl_1/final_top.bit"
     fp = OKFrontPanel(firmware_path=path)

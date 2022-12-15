@@ -8,6 +8,7 @@ from ece437.ok import OKFrontPanel
 import numpy as np
 from abc import abstractmethod
 from .qt import AbstractQObject
+from datetime import datetime
 
 __all__ = ["BaseCameraWorker", "CameraWorker"]
 
@@ -93,11 +94,25 @@ class CameraWorker(BaseCameraWorker):
 
     def grab_frame(self) -> None:
         try:
-            bytes = self._data.get_image_bytes()
-        except TimeoutError:
-            print("get_image, TIMEOUT")
-            self._data.reset()
+            t0 = datetime.now()
+            array = self._data.get_image_array()
+            t1 = datetime.now()
+        except TimeoutError as err:
+            logger.exception(err)
 
-        ny, nx = self._data.shape
-        image = QImage(bytes, nx, ny, nx, QImage.Format_Grayscale8)
+            logger.debug('timeout, reset CMV300')
+            self._data.close()
+            self._data.open()
+            return
+
+        delta = t1 - t0
+        dt = delta.total_seconds() * 1000
+        logger.info(f't_frame={dt:.3f} ms')
+
+        # FIXME simple contrast stretch
+        array = (array - np.min(array)) / (np.max(array) - np.min(array))
+        array = (array * 255).astype(np.uint8)
+
+        ny, nx = array.shape
+        image = QImage(array.data, nx, ny, nx, QImage.Format_Grayscale8)
         self.acquired_new_frame.emit(QDateTime.currentDateTime(), image)

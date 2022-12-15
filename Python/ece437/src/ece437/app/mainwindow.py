@@ -13,7 +13,7 @@ class MainWindow(QMainWindow):
         self.setup_viewer()
 
     def setup_viewer(self)->None:
-        camera = CameraWorker(self._fp, refresh_rate=40)
+        camera = CameraWorker(self._fp, refresh_rate=25)
         viewer = CameraViewerWidget(camera)
         self.setCentralWidget(viewer)
 

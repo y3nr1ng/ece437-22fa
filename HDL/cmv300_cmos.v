@@ -26,9 +26,9 @@ module cmv300_cmos #(
     input               i_clk,
 
     input               i_rst,
+    input               i_start,    // start capture
     output reg          o_ready,    // ready for frame
-    input               i_start,    // request new frame
-    output reg          o_done,     // acquired a frame
+    output reg          o_done,     // done acquiring
 
     // cmv300 control
     output reg          o_clk_in, // 40 MHz
@@ -224,11 +224,6 @@ module cmv300_cmos #(
                 S_IDLE_0: begin
                     board_led_state <= 2; //DEBUG
 
-                    o_ready <= 1;
-                    state <= S_IDLE_1;
-                end
-
-                S_IDLE_1: begin
                     if (start) begin
                         o_ready <= 0;
                         state <= S_RESET_FIFO_0;
@@ -282,12 +277,14 @@ module cmv300_cmos #(
                     board_led_state <= 4; //DEBUG
 
                     o_frame_req <= 1;
+                    o_ready <= 1;
                     line_counter_rst <= 1;
                     state <= S_START_1;
                 end
 
                 S_START_1: begin
                     o_frame_req <= 0;
+                    o_ready <= 0;
                     line_counter_rst <= 0;
                     state <= S_WAIT_PIXELS_0;
                 end

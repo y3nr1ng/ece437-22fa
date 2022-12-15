@@ -41,8 +41,8 @@ class CMV300:
         fp: OKFrontPanel,
         spi: BaseSPIController,
         endpoints: CMV300Endpoints,
-        max_retries: int = 10,
-        max_timeout: int = 500,
+        max_retries: int = 5,
+        max_timeout: int = 25,
     ) -> None:
         self._fp = fp
         self._device = None
@@ -101,12 +101,10 @@ class CMV300:
         self._device.UpdateWireIns()
 
         # adjust polling interval
-        self._device.SetBTPipePollingInterval(10) # 10 ms
+        self._device.SetBTPipePollingInterval(5) # NOTE polling period for TRIG
         self._device.SetTimeout(100) # 100 ms
         # configure bus over spi, need this to use CMOS output
         self._configure_bus()
-
-        self._wait_sys_ready()
 
     def set_shape(self, shape) -> None:
         """Set the shape. Auto center the scanlines."""
@@ -167,43 +165,27 @@ class CMV300:
         if self._buffer is not None:
             return self._buffer
 
-        self._buffer = bytearray(self.round_to_blocksize(self.n_bytes))
+        n_bytes_padded = self.round_to_blocksize(self.n_bytes)
+        logger.debug(f'resize buffer to {n_bytes_padded} bytes')
+        self._buffer = bytearray(n_bytes_padded)
         return self._buffer
 
-    def get_image_bytes(self) -> ByteString:
-        print(f'cmv300, ln171')
-        t0 = datetime.datetime.now()
-
+    def get_image_array(self):
         buffer = self.get_byte_buffer()
-        print(f'cmv300, ln175')
         self._start_acquire()
-        print(f'cmv300, ln177')
+
+        #self._wait_sys_ready()
 
         # start pulling image from pipe
         n_bytes_read = self._device.ReadFromBlockPipeOut(
             self._endpoints.PIPE, self.BLOCK_SIZE, buffer
         )
-        print(f'cmv300, ln183')
         if n_bytes_read < 0:
             raise TimeoutError(f"get_image[ReadBTPipe] timeout, retval={n_bytes_read}")
-
         self._wait_acquired()
-        print(f'cmv300, ln187')
 
-        image_bytes = buffer[:self.n_bytes]
-
-        self._wait_sys_ready()
-        print(f'cmv300, ln193')
-
-        t1 = datetime.datetime.now()
-        delta = t1 - t0
-        dt = delta.total_seconds() * 1000
-        logger.info(f't_frame={dt:.3f} ms')
-
-        print(f'cmv300, ln200')
-        print()
-        return image_bytes
-
+        return np.frombuffer(buffer, dtype=self.dtype, count=self.n_pixels).reshape(self.shape)
+        
     @classmethod
     def round_to_blocksize(cls, bytes) -> int:
         return cls.BLOCK_SIZE * round(bytes / cls.BLOCK_SIZE)
