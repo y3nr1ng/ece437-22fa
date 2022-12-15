@@ -34,7 +34,6 @@ class CameraViewerWidget(MplImageWidget):
         self._thread.quit()
         self._thread.wait()
 
-    @Slot(np.ndarray)
     def update_viewer(self, image) -> None:
         self.image_axes.set_data(image)
         self.canvas.draw()

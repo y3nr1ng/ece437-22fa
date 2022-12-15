@@ -53,6 +53,7 @@ class CMV300:
         self._timeout /= 1000  # time.sleep uses second as unit
 
         self._shape = (488, 648)
+        self._buffer = None
 
     def __enter__(self):
         self.open()
@@ -66,12 +67,27 @@ class CMV300:
         """Get acquired image shape."""
         return self._shape
 
-    def open(self) ->None:
+    @property
+    def dtype(self):
+        return np.dtype(np.uint8)
+
+    @property
+    def n_pixels(self) -> int:
+        """Number of pixels per frame."""
+        ny, nx = self._shape
+        return nx * ny
+
+    @property
+    def n_bytes(self) -> int:
+        """Number of bytes per frame."""
+        return self.n_pixels * self.dtype.itemsize
+
+    def open(self) -> None:
         self._device = self._fp._device
         self.reset()
 
-    def close(self) ->None:
-        self._device  =None
+    def close(self) -> None:
+        self._device = None
 
     def reset(self) -> None:
         """Reset the controller."""
@@ -88,41 +104,57 @@ class CMV300:
 
         self._wait_sys_ready()
 
-    def set_shape(self) -> None:
-        pass
+    def set_shape(self, shape) -> None:
+        """Set the shape. Auto center the scanlines."""
+        ny, nx = shape
+        if nx != 648:
+            nx = 648
+            logger.warning("x coerce to 648 pixels")
+        if ny < 1:
+            ny = 1
+            logger.warning("y has to >= 1")
+        elif ny > 488:
+            ny = 488
+            logger.warning("y has to <= 488")
+
+        self._shape = (ny, nx)
+
+        # number of lines
+        self._spi.write_to(1, ny & 0x0F)
+        self._spi.write_to(2, ny >> 8)
+
+        # start line
+        oy = (488 - ny) // 2
+        self._spi.write_to(3, oy & 0x0F)
+        self._spi.write_to(4, oy >> 8)
+
+        logger.info(f"updated shape (nx, ny)={shape[::-1]}, offset={oy}")
+
+        # reset buffer
+        self._buffer = None
+        
+    def get_byte_buffer(self) -> bytearray:
+        if self._buffer is not None:
+            return self._buffer
+
+        self._buffer = bytearray(self.round_to_blocksize(self.n_bytes))
+        return self._buffer
 
     def get_image(self) -> Any:
-        # build buffer
-        ny, nx = self._shape
-        # buf = bytearray(self.BLOCK_SIZE * 308)
-        n_bytes = nx * ny  # NOTE uint8
-        buf = bytearray(self.round_to_blocksize(n_bytes))
+        buffer = self.get_byte_buffer()
         self._start_acquire()
 
         # start pulling image from pipe
         n_bytes_read = self._device.ReadFromBlockPipeOut(
-            self._endpoints.PIPE, self.BLOCK_SIZE, buf
+            self._endpoints.PIPE, self.BLOCK_SIZE, buffer
         )
         if n_bytes_read < 0:
             raise TimeoutError(f"get_image[ReadBTPipe] timeout, retval={n_bytes_read}")
 
-        # wait acquisition finish
-        for i in range(self._max_retires):
-            if True or self._is_acquired():
-                logger.info(".. [acquired]")
-                break
-            time.sleep(self._timeout)
-        else:
-            total_timeout = self._timeout * self._max_retires * 1000
-            raise TimeoutError(
-                f"get_image[acquired] timeout after {int(total_timeout)} ms"
-            )
+        self._wait_acquired()
 
-        # buf = buf[:nx * (ny-2)]
-        buf = buf[:n_bytes]
-        im = np.frombuffer(buf, dtype=np.uint8)
-        # im = np.reshape(im, (ny-2, nx))
-        im = np.reshape(im, (ny, nx))
+        im = np.frombuffer(buffer, dtype=self.dtype, count=self.n_pixels)
+        im = np.reshape(im, self.shape)
 
         self._wait_sys_ready()
 
@@ -150,11 +182,14 @@ class CMV300:
 
     def _configure_bus(self) -> None:
         """
-        These are bare minimum configurations for CMOS to work.
+        Base minimum SPI settings for the sensor to work.
+
+        Notes:
+            Other advanced configurations should set them at other stages.
         """
         configs = {
             57: 3,  # 1 output, CMOS
-            68: 1,  # 10-bit mode
+            68: 2,  # 8-bit mode
             69: 9,  # export CLK_OUT
         }
         for reg_addr, reg_val in configs.items():
@@ -166,6 +201,16 @@ class CMV300:
             self._endpoints.TRIGGER_IN, self._endpoints.START_MASK
         )
         logger.debug("start acquiring frame")
+
+    def _wait_acquired(self) -> None:
+        for i in range(self._max_retires):
+            if self._is_acquired():
+                logger.info("wait_acquired TRUE")
+                break
+            time.sleep(self._timeout)
+        else:
+            total_timeout = self._timeout * self._max_retires * 1000
+            raise TimeoutError(f"wait_acquired timeout after {int(total_timeout)} ms")
 
     def _is_acquired(self) -> bool:
         self._device.UpdateTriggerOuts()
