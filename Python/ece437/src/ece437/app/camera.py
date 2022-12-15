@@ -23,7 +23,7 @@ class BaseCameraWorker(QObject, metaclass=AbstractQObject):
     Args:
         refresh_rate (float, optional): frame refresh rate in Hz
     """
-    acquired_new_frame = Signal(QDateTime, QImage)
+    acquired_new_frame = Signal(QDateTime, np.ndarray)
     timeout = Signal()
 
     def __init__(self, refresh_rate: float = 25):
@@ -100,20 +100,11 @@ class CameraWorker(BaseCameraWorker):
             t1 = datetime.now()
         except TimeoutError as err:
             logger.exception(err)
-
-            logger.debug('timeout, reset CMV300')
             self.timeout.emit()
-
             return
 
         delta = t1 - t0
         dt = delta.total_seconds() * 1000
         logger.info(f't_frame={dt:.3f} ms')
 
-        # FIXME simple contrast stretch
-        array = (array - np.min(array)) / (np.max(array) - np.min(array))
-        array = (array * 255).astype(np.uint8)
-
-        ny, nx = array.shape
-        image = QImage(array.data, nx, ny, nx, QImage.Format_Grayscale8)
-        self.acquired_new_frame.emit(QDateTime.currentDateTime(), image)
+        self.acquired_new_frame.emit(QDateTime.currentDateTime(), array) 

@@ -1,9 +1,10 @@
-from PySide2.QtCore import QThread, QDateTime, Slot
-from PySide2.QtWidgets import QWidget, QLabel
-from PySide2.QtGui import QPixmap, QImage, QResizeEvent
+from PySide2.QtCore import QThread, QDateTime, Slot, Signal
+from PySide2.QtWidgets import QWidget, QLabel, QGridLayout
+from PySide2.QtGui import QTransform
 import logging
 from .camera import BaseCameraWorker
-from .matplotlib import MplImageWidget
+import pyqtgraph as pg
+from typing import Tuple
 import numpy as np
 
 __all__ = ["CameraViewerWidget"]
@@ -11,21 +12,7 @@ __all__ = ["CameraViewerWidget"]
 logger = logging.getLogger(__name__)
 
 
-class ImageWidget(QWidget):
-    def __init__(self) -> None:
-        super().__init__()
-
-        self._label = QLabel(self)
-        self._resized = False
-
-    def update_image(self, image: QImage) -> None:
-        self._label.setPixmap(QPixmap.fromImage(image))
-        
-        if not self._resized:
-            self._label.resize(image.width(), image.height())
-            self._resized = True
-
-class CameraViewerWidget(ImageWidget):
+class CameraViewerWidget(QWidget):
     """
     Args:
         fp (OKFrontPanel): the OK FP instance
@@ -35,6 +22,28 @@ class CameraViewerWidget(ImageWidget):
     def __init__(self, camera: BaseCameraWorker, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
+        self._layout = QGridLayout(self)
+
+        # canvas
+        gv = pg.GraphicsView()
+        self._layout.addWidget(gv, 0, 0, 1, 1)
+
+        # viewbox to house the image and crosshair
+        self._vb = pg.ViewBox(enableMouse=False)
+        self._vb.setAspectLocked()
+        self._vb.invertY(True)
+        gv.setCentralItem(self._vb)
+
+        # image display
+        self._image = pg.ImageItem()
+        self._image.setOpts(axisOrder="row-major")
+        self._vb.addItem(self._image, ignoreBounds=False)
+
+        # crosshair
+        self._vline = pg.InfiniteLine(angle=90, movable=False)
+        self._hline = pg.InfiniteLine(angle=0, movable=False)
+
+        # camera and its threads
         self._camera = camera
         self._camera.acquired_new_frame.connect(self.on_acquired_new_frame)
         self._camera.timeout.connect(self.on_timeout)
@@ -53,11 +62,30 @@ class CameraViewerWidget(ImageWidget):
 
     @Slot()
     def on_timeout(self):
-        logger.error('camera timeout, attempt to reset')
+        logger.error("camera timeout, attempt to reset")
         self.stop()
         self.start()
 
-    @Slot(QDateTime, QImage)
-    def on_acquired_new_frame(self, timestamp: QDateTime, image: QImage) -> None:
-        logger.info(f'new frame, {timestamp}')
-        self.update_image(image)
+    @Slot(QDateTime, np.ndarray)
+    def on_acquired_new_frame(self, timestamp: QDateTime, image: np.ndarray) -> None:
+        logger.info(f"new frame, {timestamp}")
+        self._image.setImage(image, autoLevels=True)
+
+    @Slot(bool)
+    def on_update_tracker_state(self, state: bool) -> None:
+        if state:
+            if self._vline not in self._vb.addedItems:
+                self._vb.addItem(self._vline)
+            if self._hline not in self._vb.addedItems:
+                self._vb.addItem(self._hline)
+        else:
+            if self._vline in self._vb.addedItems:
+                self._vb.removeItem(self._vline)
+            if self._hline in self._vb.addedItems:
+                self._vb.removeItem(self._hline)
+
+    @Slot(float, float)
+    def on_update_tracker_position(self, x: float, y: float) -> None:
+        self._vline.setPos(x)
+        self._hline.setPos(y)
+
