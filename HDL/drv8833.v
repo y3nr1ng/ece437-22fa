@@ -32,7 +32,7 @@ module drv8833 #(
     input               i_dir,
     input       [23:0]  i_pulses,
     
-    output              o_busy,
+    output reg          o_done,
     
     // wirings
     output              o_pmod_dir,
@@ -69,11 +69,11 @@ module drv8833 #(
     reg         clear = 0;
     reg [23:0]  counter = 0;
     
-    always @(posedge i_clk) begin
+    always @(posedge pmod_en or posedge clear) begin
         if (clear) begin
             counter <= 0;
         end
-        else if (pmod_en_tick) begin
+        else begin
             counter <= counter + 1'b1;
         end
     end
@@ -90,9 +90,20 @@ module drv8833 #(
                S_PREPARE = 1,
                S_RUN = 2;
     
+    reg start = 0;
+
     reg [23:0] target_counter = 0;
     
     always @(posedge i_clk) begin
+        o_done <= 0;
+        if (o_done) begin
+            start <= 0;
+        end
+
+        if (i_start) begin
+            start <= 1;
+        end
+        
         if (i_rst) begin 
             state <= S_IDLE;
          
@@ -105,35 +116,35 @@ module drv8833 #(
             target_counter <= 0;   
         end 
         else begin
-            //clear <= 0;
             
+
             case (state)
                 S_IDLE: begin
-                    if (i_start) begin
+                    if (start) begin
                         state <= S_PREPARE;
-                        clear <= 1;
                     end
                 end
-                
+
                 S_PREPARE: begin
-                    state <= S_RUN;
-                    
-                    // set direction
+                    // set_direction
                     dir <= i_dir;
-                    
-                    // set enable pulses to wait for
-                    clear <= 0;
+
+                    // reset pulse counter 
+                    clear <= 1;
                     target_counter <= i_pulses;
+
+                    pmod_oe <= 1;
+
+                    state <= S_RUN;
                 end
                 
                 S_RUN: begin
+                    clear <= 0;
+                    
                     if (counter >= target_counter) begin
-                        state <= S_IDLE;
-                        
                         pmod_oe <= 0;
-                    end
-                    else begin
-                        pmod_oe <= 1;
+                        o_done <= 1;
+                        state <= S_IDLE;
                     end
                 end
             endcase

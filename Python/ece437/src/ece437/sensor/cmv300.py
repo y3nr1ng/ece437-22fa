@@ -41,8 +41,8 @@ class CMV300:
         fp: OKFrontPanel,
         spi: BaseSPIController,
         endpoints: CMV300Endpoints,
-        max_retries: int = 5,
-        max_timeout: int = 50,
+        max_retries: int = 1000000, #5,
+        max_timeout: int = 0, #50,
     ) -> None:
         self._fp = fp
         self._device = None
@@ -219,7 +219,7 @@ class CMV300:
             69: 9,  # export CLK_OUT
         }
         for reg_addr, reg_val in configs.items():
-            logger.debug(".. [{reg_addr:02x}]={reg_val}")
+            logger.debug(f".. [{reg_addr:02x}]={reg_val}")
             self._spi.write_to(reg_addr, [reg_val])
 
     def _start_acquire(self) -> None:

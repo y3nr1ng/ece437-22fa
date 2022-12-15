@@ -235,9 +235,6 @@ class LSM303Magnetometer:
     def __init__(self, i2c: BaseI2CController):
         self._i2c = i2c
 
-        byte, = self._i2c.read_from(self.ADDRESS, self.CRA_REG_M, 1)
-        print(f'CRA_REG_M={byte:>08b}')
-
         self._xy_gain = None
         self._z_gain = None
 

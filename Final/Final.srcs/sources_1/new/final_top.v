@@ -167,7 +167,7 @@ module final_top(
     //  1: cmv done
     okTriggerOut to_61 (.okHE (okHE), .okEH (okEHx[ 4*65 +: 65 ]),  .ep_clk(cmv300_clk),    .ep_addr (8'h61), .ep_trigger (to_61_wire));
     // trigger out, 0x62
-    //  0: pmod1 free
+    //  0: pmod1 done
     okTriggerOut to_62 (.okHE (okHE), .okEH (okEHx[ 5*65 +: 65 ]),  .ep_clk(ref_clk_10M),   .ep_addr (8'h62), .ep_trigger (to_62_wire));
     // trigger out, 0x63
     //  0: i2c_0 done
@@ -289,9 +289,6 @@ module final_top(
     assign i_dir_wire = wi_02_wire[31];
     assign i_pulses_wire = wi_02_wire[23:0];
 
-    wire o_pmod1_busy;
-    assign to_62_wire[0] = !o_pmod1_busy;
-
     drv8833 #(
         .PULSE_CLK_DIVIDER (10000) // 1 kHz
     ) pmod_1 (
@@ -304,7 +301,7 @@ module final_top(
         .i_dir (i_dir_wire),
         .i_pulses (i_pulses_wire),
     
-        .o_busy (o_pmod1_busy),
+        .o_done (to_62_wire[0]),
     
         // wirings
         .o_pmod_dir (PMOD_A2),

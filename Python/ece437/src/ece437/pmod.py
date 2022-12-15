@@ -67,22 +67,29 @@ class PMOD:
         self._device.SetWireInValue(self._endpoints.RESET, 0x00)
         self._device.UpdateWireIns()
 
-    def start(self, n_pulses: int, dir: PMODDirection) -> None:
-        if not self._is_motor_done():
-            return
+    def start(self, n_pulses: int, dir: PMODDirection, block: bool=False) -> None:
+        #if not self._is_motor_done():
+        #    return
 
         value = (n_pulses & 0x00FFFFFF) | dir
         if value != self._last_ctrl_value:
-            logger.info(f'update pwm control, reg_val={value:>032b}')
+            logger.debug(f'update pwm control, reg_val={value:>032b}')
             self._device.SetWireInValue(self._endpoints.CONTROL, value)
             self._device.UpdateWireIns()
             self._last_ctrl_value = value
 
         self._start_pwm()
 
+        if block:
+            logger.info(f'blocking, is_motor_done?')
+            while True:
+                if self._is_motor_done():
+                    logger.info(f'blocking, DONE')
+                    break
+
     def _start_pwm(self) -> None:
         self._device.ActivateTriggerIn(self._endpoints.TRIGGER_IN, self._endpoints.START_MASK)
-        logger.debug('pwm start')
+        logger.info('motor start')
 
     def _is_motor_done(self) -> bool:
         self._device.UpdateTriggerOuts()

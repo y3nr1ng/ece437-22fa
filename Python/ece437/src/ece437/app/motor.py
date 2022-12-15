@@ -49,5 +49,5 @@ class MotorWorker(BaseMotorWorker):
 
     def move_steps(self, steps: int) -> None:
         direction = PMODDirection.Forward if steps > 0 else PMODDirection.Reverse
-        self._pmod.start(abs(steps), direction)
+        self._pmod.start(abs(steps), direction, block=True)
 

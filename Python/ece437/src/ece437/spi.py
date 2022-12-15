@@ -81,8 +81,8 @@ class SPIController(BaseSPIController):
         self,
         fp: OKFrontPanel,
         endpoints: SPIControllerEndpoints,
-        max_retries: int = 10,
-        max_timeout: int = 500,
+        max_retries: int = 100,
+        max_timeout: int = 0,
     ) -> None:
         super().__init__(fp)
 

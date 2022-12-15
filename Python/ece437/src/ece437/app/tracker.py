@@ -30,7 +30,7 @@ class TrackerWidget(QWidget):
 
         self._frame_index = 0
 
-        self._controller = self._pid(k_p=0.8, k_i=0, k_d=0.8)
+        self._controller = self._pid(k_p=0.7, k_i=0, k_d=0.8)
         self._controller.send(None)
 
     def start(self) -> None:
@@ -43,9 +43,9 @@ class TrackerWidget(QWidget):
 
     @Slot(QDateTime, np.ndarray)
     def on_acquired_new_frame(self, timestamp: QDateTime, image: np.ndarray) -> None:
-        self._frame_index += 1
-        if self._frame_index % 2 != 0: # reduce update rate
-            return
+        #self._frame_index += 1
+        #if self._frame_index % 5 != 0: # reduce update rate
+        #    return
 
         pos = self._find_object_center(image)
         if pos is not None:
@@ -61,10 +61,10 @@ class TrackerWidget(QWidget):
                 _, nx = image.shape
                 dx = pos[0] - nx/2. 
 
-                t = timestamp.msecsTo(self._t_prev)
-                sv = self._prev_pos[0] - nx/2.
-                x = self._controller.send([t, 0, dx])
-                self._motor.move(x)
+                #t = timestamp.msecsTo(self._t_prev)
+                #x = self._controller.send([t, 0, dx])
+
+                #self._motor.move(dx)
         else:
             if self._prev_pos is not None:
                 self.update_tracker_state.emit(False)
@@ -149,8 +149,8 @@ class TrackerWidget(QWidget):
         weights[(dv / mad) <= threshold] = 0
         if np.sum(weights) < 1:
             return None
-        #if np.sum(weights > 0) < fill_ratio * image.size:
-        #    return None
+        elif np.sum(weights > 0) < fill_ratio * image.size:
+            return None
 
         ny, nx = image.shape
         xv, yv = np.meshgrid(range(nx), range(ny), indexing="xy")
