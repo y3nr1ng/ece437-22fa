@@ -3,40 +3,6 @@ from ece437.spi import SPIControllerEndpoints
 from ece437.sensor import CMV300Endpoints
 from ece437.pmod import PMODType5Endpoints
 
-I2C_0_ENDPOINTS = I2CControllerEndpoints(
-    RESET = 0x00,
-    DATA_IN = 0x01,
-    DATA_OUT = 0x20,
-    TRIGGER_IN = 0x40,
-    TRIGGER_OUT = 0x60,
-
-    RESET_MASK = 0,
-
-    START_MASK = 0,
-    MEM_RESET_MASK = 1,
-    MEM_WRITE_MASK = 2,
-    MEM_READ_MASK = 3,
-
-    DONE_MASK = 0
-)
-
-I2C_1_ENDPOINTS = I2CControllerEndpoints(
-    RESET = 0x00,
-    DATA_IN = 0x02,
-    DATA_OUT = 0x21,
-    TRIGGER_IN = 0x40,
-    TRIGGER_OUT = 0x60,
-
-    RESET_MASK = 1,
-    
-    START_MASK = 4,
-    MEM_RESET_MASK = 5,
-    MEM_WRITE_MASK = 6,
-    MEM_READ_MASK = 7,
-
-    DONE_MASK = 1
-)
-
 CMV300_SPI_ENDPOINTS = SPIControllerEndpoints(
     RESET = 0x00,
     DATA_IN = 0x01,
@@ -78,4 +44,38 @@ PMOD_1_ENDPOINTS = PMODType5Endpoints(
 
     START_MASK = 0,
     DONE_MASK = 0
+)
+
+I2C_0_ENDPOINTS = I2CControllerEndpoints(
+    RESET = 0x00,
+    DATA_IN = 0x03,
+    DATA_OUT = 0x21,
+    TRIGGER_IN = 0x43,
+    TRIGGER_OUT = 0x63,
+
+    RESET_MASK = 3,
+
+    START_MASK = 0,
+    MEM_RESET_MASK = 1,
+    MEM_WRITE_MASK = 2,
+    MEM_READ_MASK = 3,
+
+    DONE_MASK = 0
+)
+
+I2C_1_ENDPOINTS = I2CControllerEndpoints(
+    RESET = 0x00,
+    DATA_IN = 0x04,
+    DATA_OUT = 0x22,
+    TRIGGER_IN = 0x43,
+    TRIGGER_OUT = 0x63,
+
+    RESET_MASK = 4,
+    
+    START_MASK = 4,
+    MEM_RESET_MASK = 5,
+    MEM_WRITE_MASK = 6,
+    MEM_READ_MASK = 7,
+
+    DONE_MASK = 1
 )

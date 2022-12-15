@@ -54,6 +54,12 @@ module final_top(
     output          PMOD_A1, // en
     output          PMOD_A2, // dir
 
+    // i2c
+    inout           I2C_SCL_0,
+    inout           I2C_SDA_0,
+    inout           I2C_SCL_1,
+    inout           I2C_SDA_1,
+
     // led debug
     output [3:0]    s_LED,
     output [7:0]    led
@@ -95,14 +101,16 @@ module final_top(
     wire [31:0] ti_40_wire;
     wire [31:0] ti_41_wire;
     wire [31:0] ti_42_wire;
+    wire [31:0] ti_43_wire;
     wire [31:0] to_60_wire;
     wire [31:0] to_61_wire;
     wire [31:0] to_62_wire;
+    wire [31:0] to_63_wire;
     
     wire [31:0] po_a0_wire_datain;
     assign po_a0_wire_datain = { cmv300_fifo_data[7:0], cmv300_fifo_data[15:8], cmv300_fifo_data[23:16], cmv300_fifo_data[31:24] };
 
-    localparam  endpoint_count = 5;
+    localparam  endpoint_count = 8;
     wire [endpoint_count*65-1:0] okEHx;  
     okWireOR # (.N(endpoint_count)) wireOR (okEH, okEHx);
     
@@ -110,6 +118,8 @@ module final_top(
     //  0: spi reset
     //  1: cmv300 reset
     //  2: pmod reset
+    //  3: i2c_0 reset
+    //  4: i2c_1 reset
     okWireIn     wi_00 (.okHE (okHE),                                                       .ep_addr (8'h00), .ep_dataout (wi_00_wire)); 
     // input, 0x01, spi input data
     okWireIn     wi_01 (.okHE (okHE),                                                       .ep_addr (8'h01), .ep_dataout (i_mem_data_0)); 
@@ -117,8 +127,16 @@ module final_top(
     //  [31]:    dir
     //  [23..0]: pulse
     okWireIn     wi_02 (.okHE (okHE),                                                       .ep_addr (8'h02), .ep_dataout (wi_02_wire)); 
-    // output, 0x20, i2c_0 output data
+    // input, 0x03, i2c_0 input data
+    okWireIn     wi_03 (.okHE (okHE),                                                       .ep_addr (8'h03), .ep_dataout (i_mem_data_1)); 
+    // input, 0x04, i2c_1 input data
+    okWireIn     wi_04 (.okHE (okHE),                                                       .ep_addr (8'h04), .ep_dataout (i_mem_data_2)); 
+    // output, 0x20, spi output data
     okWireOut    wo_20 (.okHE (okHE), .okEH (okEHx[ 0*65 +: 65 ]),                          .ep_addr (8'h20), .ep_datain (o_mem_data_0));
+    // output, 0x21, i2c_0 output data
+    okWireOut    wo_21 (.okHE (okHE), .okEH (okEHx[ 1*65 +: 65 ]),                          .ep_addr (8'h21), .ep_datain (o_mem_data_1));
+    // output, 0x22, i2c_1 output data
+    okWireOut    wo_22 (.okHE (okHE), .okEH (okEHx[ 2*65 +: 65 ]),                          .ep_addr (8'h22), .ep_datain (o_mem_data_2));
     // trigger in, 0x40
     //  0: spi start
     //  1: spi mem start
@@ -131,18 +149,32 @@ module final_top(
     // trigger in, 0x42
     //  0: pmod1 start
     okTriggerIn  ti_42 (.okHE (okHE),                               .ep_clk(ref_clk_10M),   .ep_addr (8'h42), .ep_trigger (ti_42_wire));
+    // trigger in, 0x43
+    //  0: i2c_0 start
+    //  1: i2c_0 mem start
+    //  2: i2c_0 mem write
+    //  3: i2c_0 mem read
+    //  4: i2c_1 start
+    //  5: i2c_1 mem start
+    //  6: i2c_1 mem write
+    //  7: i2c_1 mem read
+    okTriggerIn  ti_43 (.okHE (okHE),                               .ep_clk(okClk),         .ep_addr (8'h43), .ep_trigger (ti_43_wire));
     // trigger out, 0x60
     //  0: spi done
-    okTriggerOut to_60 (.okHE (okHE), .okEH (okEHx[ 1*65 +: 65 ]),  .ep_clk(ref_clk_80M),   .ep_addr (8'h60), .ep_trigger (to_60_wire));
+    okTriggerOut to_60 (.okHE (okHE), .okEH (okEHx[ 3*65 +: 65 ]),  .ep_clk(ref_clk_80M),   .ep_addr (8'h60), .ep_trigger (to_60_wire));
     // trigger out, 0x61
     //  0: cmv ready
     //  1: cmv done
-    okTriggerOut to_61 (.okHE (okHE), .okEH (okEHx[ 2*65 +: 65 ]),  .ep_clk(cmv300_clk),    .ep_addr (8'h61), .ep_trigger (to_61_wire));
+    okTriggerOut to_61 (.okHE (okHE), .okEH (okEHx[ 4*65 +: 65 ]),  .ep_clk(cmv300_clk),    .ep_addr (8'h61), .ep_trigger (to_61_wire));
     // trigger out, 0x62
     //  0: pmod1 free
-    okTriggerOut to_62 (.okHE (okHE), .okEH (okEHx[ 3*65 +: 65 ]),  .ep_clk(ref_clk_10M),   .ep_addr (8'h62), .ep_trigger (to_62_wire));
+    okTriggerOut to_62 (.okHE (okHE), .okEH (okEHx[ 5*65 +: 65 ]),  .ep_clk(ref_clk_10M),   .ep_addr (8'h62), .ep_trigger (to_62_wire));
+    // trigger out, 0x63
+    //  0: i2c_0 done
+    //  1: i2c_1 done
+    okTriggerOut to_63 (.okHE (okHE), .okEH (okEHx[ 6*65 +: 65 ]),  .ep_clk(okClk),         .ep_addr (8'h63), .ep_trigger (to_63_wire));
     // pipe
-    okBTPipeOut po_a0  (.okHE (okHE), .okEH (okEHx[ 4*65 +: 65 ]),                          .ep_addr (8'ha0), .ep_datain (po_a0_wire_datain), 
+    okBTPipeOut po_a0  (.okHE (okHE), .okEH (okEHx[ 7*65 +: 65 ]),                          .ep_addr (8'ha0), .ep_datain (po_a0_wire_datain), 
                                                                                                               .ep_read(cmv300_fifo_read_en), 
                                                                                                               .ep_blockstrobe(),  
                                                                                                               .ep_ready(cmv300_fifo_prog_full)
@@ -279,5 +311,83 @@ module final_top(
         .o_pmod_en (PMOD_A1)
     );
     /*** motor ***/
+
+    /*** i2c_0 ***/
+    wire reset_async_3;
+    wire reset_okclk_3;
+    
+    assign reset_async_3 = wi_00_wire[3];
+    
+    sync_reset sync_reset_inst_3 (
+        .i_clk (okClk),
+        .i_async_reset (reset_async_3),
+        .o_sync_reset (reset_okclk_3)
+    );
+    
+    wire [31:0] i_mem_data_1;
+    wire [31:0] o_mem_data_1;
+       
+    i2c_master #(
+        .CLK_DIVIDER (512)
+    ) i2c_master_inst_0 (
+        .i_clk (okClk),
+        
+        // controls
+        .i_rst (reset_okclk_3),
+        .i_start (ti_43_wire[0]),
+        .o_done (to_63_wire[0]),
+        
+        // data
+        .i_mem_clk (okClk),
+        .i_mem_start (ti_43_wire[1]),
+        .i_mem_write (ti_43_wire[2]),
+        .i_mem_read (ti_43_wire[3]),
+        .i_mem_data (i_mem_data_1[7:0]),
+        .o_mem_data (o_mem_data_1[7:0]),
+         
+        // wirings
+        .io_scl (I2C_SCL_0),
+        .io_sda (I2C_SDA_0)
+    );
+    /*** i2c_0 ***/
+    
+    /*** i2c_1 ***/
+    wire reset_async_4;
+    wire reset_okclk_4;
+    
+    assign reset_async_4 = wi_00_wire[4];
+    
+    sync_reset sync_reset_inst_4 (
+        .i_clk (okClk),
+        .i_async_reset (reset_async_4),
+        .o_sync_reset (reset_okclk_4)
+    );
+    
+    wire [31:0] i_mem_data_2;
+    wire [31:0] o_mem_data_2;
+       
+    i2c_master #(
+        .CLK_DIVIDER (512)
+    ) i2c_master_inst_1 (
+        .i_clk (okClk),
+        
+        // controls
+        .i_rst (reset_okclk_4),
+        .i_start (ti_43_wire[4]),
+        .o_done (to_63_wire[1]),
+        
+        // data
+        .i_mem_clk (okClk),
+        .i_mem_start (ti_43_wire[5]),
+        .i_mem_write (ti_43_wire[6]),
+        .i_mem_read (ti_43_wire[7]),
+        .i_mem_data (i_mem_data_2[7:0]),
+        .o_mem_data (o_mem_data_2[7:0]),
+         
+        // wirings
+        .io_scl (I2C_SCL_1),
+        .io_sda (I2C_SDA_1)
+    );
+    /*** i2c_1 ***/
     
 endmodule

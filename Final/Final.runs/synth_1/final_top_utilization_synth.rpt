@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
 -------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2022.2 (win64) Build 3671981 Fri Oct 14 05:00:03 MDT 2022
-| Date         : Thu Dec 15 07:08:52 2022
+| Date         : Thu Dec 15 11:34:53 2022
 | Host         : SCKY-ASUS running 64-bit major release  (build 9200)
 | Command      : report_utilization -file final_top_utilization_synth.rpt -pb final_top_utilization_synth.pb
 | Design       : final_top
@@ -31,15 +31,15 @@ Table of Contents
 +----------------------------+------+-------+------------+-----------+-------+
 |          Site Type         | Used | Fixed | Prohibited | Available | Util% |
 +----------------------------+------+-------+------------+-----------+-------+
-| Slice LUTs*                | 1335 |     0 |          0 |     47200 |  2.83 |
-|   LUT as Logic             | 1279 |     0 |          0 |     47200 |  2.71 |
-|   LUT as Memory            |   56 |     0 |          0 |     19000 |  0.29 |
-|     LUT as Distributed RAM |   56 |     0 |            |           |       |
+| Slice LUTs*                | 1841 |     0 |          0 |     47200 |  3.90 |
+|   LUT as Logic             | 1737 |     0 |          0 |     47200 |  3.68 |
+|   LUT as Memory            |  104 |     0 |          0 |     19000 |  0.55 |
+|     LUT as Distributed RAM |  104 |     0 |            |           |       |
 |     LUT as Shift Register  |    0 |     0 |            |           |       |
-| Slice Registers            | 1320 |    96 |          0 |     94400 |  1.40 |
-|   Register as Flip Flop    | 1320 |    96 |          0 |     94400 |  1.40 |
+| Slice Registers            | 1711 |    96 |          0 |     94400 |  1.81 |
+|   Register as Flip Flop    | 1711 |    96 |          0 |     94400 |  1.81 |
 |   Register as Latch        |    0 |     0 |          0 |     94400 |  0.00 |
-| F7 Muxes                   |    8 |     0 |          0 |     31700 |  0.03 |
+| F7 Muxes                   |   12 |     0 |          0 |     31700 |  0.04 |
 | F8 Muxes                   |    0 |     0 |          0 |     15850 |  0.00 |
 +----------------------------+------+-------+------------+-----------+-------+
 * Warning! The Final LUT count, after physical optimizations and full implementation, is typically lower. Run opt_design after synthesis, if not already completed, for a more realistic count.
@@ -59,9 +59,9 @@ Warning! LUT value is adjusted to account for LUT combining.
 | 0     |            _ |       Reset |            - |
 | 0     |          Yes |           - |            - |
 | 37    |          Yes |           - |          Set |
-| 389   |          Yes |           - |        Reset |
-| 19    |          Yes |         Set |            - |
-| 875   |          Yes |       Reset |            - |
+| 481   |          Yes |           - |        Reset |
+| 25    |          Yes |         Set |            - |
+| 1168  |          Yes |       Reset |            - |
 +-------+--------------+-------------+--------------+
 
 
@@ -96,7 +96,7 @@ Warning! LUT value is adjusted to account for LUT combining.
 +-----------------------------+------+-------+------------+-----------+-------+
 |          Site Type          | Used | Fixed | Prohibited | Available | Util% |
 +-----------------------------+------+-------+------------+-----------+-------+
-| Bonded IOB                  |   73 |     0 |          0 |       285 | 25.61 |
+| Bonded IOB                  |   77 |     0 |          0 |       285 | 27.02 |
 | Bonded IPADs                |    0 |     0 |          0 |        14 |  0.00 |
 | Bonded OPADs                |    0 |     0 |          0 |         8 |  0.00 |
 | PHY_CONTROL                 |    0 |     0 |          0 |         6 |  0.00 |
@@ -155,25 +155,25 @@ Warning! LUT value is adjusted to account for LUT combining.
 +------------+------+---------------------+
 |  Ref Name  | Used | Functional Category |
 +------------+------+---------------------+
-| FDRE       |  875 |        Flop & Latch |
-| LUT6       |  522 |                 LUT |
-| FDCE       |  389 |        Flop & Latch |
-| LUT4       |  367 |                 LUT |
-| LUT5       |  313 |                 LUT |
-| LUT3       |   96 |                 LUT |
-| LUT2       |   90 |                 LUT |
-| LUT1       |   76 |                 LUT |
-| CARRY4     |   67 |          CarryLogic |
-| IBUF       |   50 |                  IO |
+| FDRE       | 1168 |        Flop & Latch |
+| LUT6       |  641 |                 LUT |
+| LUT4       |  571 |                 LUT |
+| FDCE       |  481 |        Flop & Latch |
+| LUT5       |  400 |                 LUT |
+| LUT2       |  183 |                 LUT |
+| LUT3       |  123 |                 LUT |
+| LUT1       |   80 |                 LUT |
+| CARRY4     |   75 |          CarryLogic |
+| RAMD64E    |   72 |  Distributed Memory |
+| IBUF       |   54 |                  IO |
+| OBUFT      |   37 |                  IO |
 | FDPE       |   37 |        Flop & Latch |
-| OBUFT      |   33 |                  IO |
-| RAMD64E    |   24 |  Distributed Memory |
+| FDSE       |   25 |        Flop & Latch |
 | RAMD32     |   24 |  Distributed Memory |
 | OBUF       |   23 |                  IO |
-| FDSE       |   19 |        Flop & Latch |
 | RAMS64E    |   16 |  Distributed Memory |
+| MUXF7      |   12 |               MuxFx |
 | RAMS32     |    8 |  Distributed Memory |
-| MUXF7      |    8 |               MuxFx |
 | BUFG       |    4 |               Clock |
 | RAMB18E1   |    2 |        Block Memory |
 | RAMB36E1   |    1 |        Block Memory |
@@ -199,11 +199,11 @@ Warning! LUT value is adjusted to account for LUT combining.
 +------------------------+------+
 |        Ref Name        | Used |
 +------------------------+------+
-| okWireIn               |    3 |
-| okTriggerOut           |    3 |
-| okTriggerIn            |    3 |
+| okWireIn               |    5 |
+| okTriggerOut           |    4 |
+| okTriggerIn            |    4 |
+| okWireOut              |    3 |
 | xpm_cdc_async_rst      |    1 |
-| okWireOut              |    1 |
 | okCoreHarness          |    1 |
 | okCore                 |    1 |
 | okBTPipeOut            |    1 |
