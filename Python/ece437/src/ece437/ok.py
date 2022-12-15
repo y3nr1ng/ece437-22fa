@@ -1,6 +1,7 @@
 import logging
 import os
 from typing import Tuple
+from typing import Optional
 
 import ok
 
@@ -66,13 +67,17 @@ class OKFrontPanel:
         self._device_info = None
 
     @staticmethod
-    def parse_error_code(code):
+    def parse_error_code(code, message: Optional[str]=None):
         lut = {
             0: (None, "success"),
             -1: (RuntimeError, "non-descriptive failure"),
             -2: (TimeoutError, "transfer timed out"),
             # TODO need to add reset of the errors
         }
-        klass, message = lut.get(code, (RuntimeError, f"unknown error code ({code})"))
+        klass, desc = lut.get(code, (RuntimeError, f"unknown error code ({code})"))
         if klass:
+            if message is None:
+                message = desc
+            else:
+                message = f'{desc}, {message}'
             raise klass(message)

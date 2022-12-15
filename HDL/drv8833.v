@@ -36,9 +36,7 @@ module drv8833 #(
     
     // wirings
     output              o_pmod_dir,
-    output              o_pmod_en,
-    
-    output  [3:0]       debug_led
+    output              o_pmod_en
 );
     
     /*** en pulse generator ***/
@@ -65,8 +63,6 @@ module drv8833 #(
     
     wire pmod_en_tick;
     assign pmod_en_tick = (pmod_en_counter == PULSE_CLK_DIVIDER) & o_pmod_en;
-    
-    assign debug_led[0] = pmod_en;
     /*** en pulse generator ***/
     
     /*** en counter ***/
@@ -88,8 +84,6 @@ module drv8833 #(
     /*** dir control ***/
     reg dir = 0;
     assign o_pmod_dir = dir;
-    
-    assign debug_led[1] = dir;
     /*** dir control ***/
     
     /*** main fsm ***/
@@ -149,7 +143,6 @@ module drv8833 #(
     end
     
     assign o_busy = (state != S_IDLE);
-    assign debug_led[2] = o_busy;
     /*** main fsm ***/
     
 endmodule

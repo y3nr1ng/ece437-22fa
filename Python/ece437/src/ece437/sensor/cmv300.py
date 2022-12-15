@@ -1,11 +1,11 @@
 import logging
+from math import ceil
 from typing import Tuple, Any, ByteString
 from collections import namedtuple
 from ece437.ok import OKFrontPanel
 from ece437.spi import BaseSPIController
 import time
 import numpy as np
-import datetime
 
 __all__ = ["CMV300", "CMV300Endpoints"]
 
@@ -34,7 +34,7 @@ class CMV300:
         TBD
     """
 
-    BLOCK_SIZE: int = 1024  # [bytes] for USB3
+    BLOCK_SIZE: int = 1024 
 
     def __init__(
         self,
@@ -42,7 +42,7 @@ class CMV300:
         spi: BaseSPIController,
         endpoints: CMV300Endpoints,
         max_retries: int = 5,
-        max_timeout: int = 25,
+        max_timeout: int = 50,
     ) -> None:
         self._fp = fp
         self._device = None
@@ -51,7 +51,7 @@ class CMV300:
 
         self._max_retires = max_retries
         self._timeout = float(max_timeout) / max_retries
-        self._timeout /= 1000  # time.sleep uses second as unit
+        self._timeout /= 1000  # NOTE time.sleep uses second as unit
 
         self._shape = (488, 648)
         self._buffer = None
@@ -101,8 +101,8 @@ class CMV300:
         self._device.UpdateWireIns()
 
         # adjust polling interval
-        self._device.SetBTPipePollingInterval(5) # NOTE polling period for TRIG
-        self._device.SetTimeout(100) # 100 ms
+        #self._device.SetBTPipePollingInterval(10) # NOTE polling period for TRIG
+        self._device.SetTimeout(50) # 100 ms
         # configure bus over spi, need this to use CMOS output
         self._configure_bus()
 
@@ -181,14 +181,14 @@ class CMV300:
             self._endpoints.PIPE, self.BLOCK_SIZE, buffer
         )
         if n_bytes_read < 0:
-            raise TimeoutError(f"get_image[ReadBTPipe] timeout, retval={n_bytes_read}")
+            OKFrontPanel.parse_error_code(n_bytes_read, "pipe timeout")
         self._wait_acquired()
 
         return np.frombuffer(buffer, dtype=self.dtype, count=self.n_pixels).reshape(self.shape)
         
     @classmethod
     def round_to_blocksize(cls, bytes) -> int:
-        return cls.BLOCK_SIZE * round(bytes / cls.BLOCK_SIZE)
+        return cls.BLOCK_SIZE * ceil(bytes / cls.BLOCK_SIZE)
 
     def _wait_sys_ready(self) -> None:
         for _ in range(self._max_retires):

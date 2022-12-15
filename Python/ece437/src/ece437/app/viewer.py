@@ -37,6 +37,7 @@ class CameraViewerWidget(ImageWidget):
 
         self._camera = camera
         self._camera.acquired_new_frame.connect(self.on_acquired_new_frame)
+        self._camera.timeout.connect(self.on_timeout)
 
         self._thread = QThread()
         self._camera.moveToThread(self._thread)
@@ -49,6 +50,12 @@ class CameraViewerWidget(ImageWidget):
     def stop(self) -> None:
         self._thread.quit()
         self._thread.wait()
+
+    @Slot()
+    def on_timeout(self):
+        logger.error('camera timeout, attempt to reset')
+        self.stop()
+        self.start()
 
     @Slot(QDateTime, QImage)
     def on_acquired_new_frame(self, timestamp: QDateTime, image: QImage) -> None:

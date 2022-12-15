@@ -24,6 +24,7 @@ class BaseCameraWorker(QObject, metaclass=AbstractQObject):
         refresh_rate (float, optional): frame refresh rate in Hz
     """
     acquired_new_frame = Signal(QDateTime, QImage)
+    timeout = Signal()
 
     def __init__(self, refresh_rate: float = 25):
         super().__init__()
@@ -101,8 +102,8 @@ class CameraWorker(BaseCameraWorker):
             logger.exception(err)
 
             logger.debug('timeout, reset CMV300')
-            self._data.close()
-            self._data.open()
+            self.timeout.emit()
+
             return
 
         delta = t1 - t0
