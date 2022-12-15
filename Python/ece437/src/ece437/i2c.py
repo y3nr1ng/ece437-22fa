@@ -14,14 +14,19 @@ class BaseI2CController(ABC):
         self._device = None
 
     def __enter__(self):
-        self._device = self._fp._device
-
-        self.reset()
+        self.open()
         return self
 
     def __exit__(self, *exc_args):
-        self._device = None
+        self.close()
     
+    def open(self) -> None:
+        self._device = self._fp._device
+        self.reset()
+
+    def close(self) -> None:
+        self._device = None
+
     @abstractmethod
     def reset(self):
         """TBD"""

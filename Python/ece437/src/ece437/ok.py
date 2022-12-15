@@ -9,23 +9,18 @@ logger = logging.getLogger(__name__)
 
 class OKFrontPanel:
     def __init__(self, serial="", firmware_path=None):
-        self._device = None
+        self._device = ok.okCFrontPanel()
         self._serial = serial
         self._firmware_path = firmware_path
 
         self._device_info = None
 
     def __enter__(self):
-        self._device = ok.okCFrontPanel()
         self.open()
-
         return self
 
     def __exit__(self, *exc_args):
         self.close()
-
-        del self._device
-        self._device = None
 
     @property
     def device_id(self) -> str:

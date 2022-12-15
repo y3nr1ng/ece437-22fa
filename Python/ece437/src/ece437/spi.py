@@ -8,20 +8,26 @@ from ece437.ok import OKFrontPanel
 
 logger = logging.getLogger(__name__)
 
+
 class BaseSPIController(ABC):
     def __init__(self, fp: OKFrontPanel) -> None:
         self._fp = fp
         self._device = None
 
     def __enter__(self):
-        self._device = self._fp._device
-
-        self.reset()
+        self.open()
         return self
 
     def __exit__(self, *exc_args):
+        self.close()
+
+    def open(self) -> None:
+        self._device = self._fp._device
+        self.reset()
+
+    def close(self) -> None:
         self._device = None
-    
+
     @abstractmethod
     def reset(self):
         """TBD"""
@@ -34,25 +40,24 @@ class BaseSPIController(ABC):
     def receive(self, length: int) -> Iterable[int]:
         """TBD"""
 
+
 SPIControllerEndpoints = namedtuple(
-    'I2CControllerEndpoints', 
+    "I2CControllerEndpoints",
     [
-        'RESET', 
-        'DATA_IN', 
-        'DATA_OUT',
-        'TRIGGER_IN',
-        'TRIGGER_OUT',
-
-        'RESET_MASK',
-
-        'START_MASK',
-        'MEM_RESET_MASK',
-        'MEM_WRITE_MASK',
-        'MEM_READ_MASK',
-        
-        'DONE_MASK'
-    ]
+        "RESET",
+        "DATA_IN",
+        "DATA_OUT",
+        "TRIGGER_IN",
+        "TRIGGER_OUT",
+        "RESET_MASK",
+        "START_MASK",
+        "MEM_RESET_MASK",
+        "MEM_WRITE_MASK",
+        "MEM_READ_MASK",
+        "DONE_MASK",
+    ],
 )
+
 
 class SPIController(BaseSPIController):
     """
@@ -72,19 +77,20 @@ class SPIController(BaseSPIController):
     # implementation
     MAX_BUFFER_LENGTH: int = 64
 
-    def __init__(self, 
-        fp: OKFrontPanel, 
+    def __init__(
+        self,
+        fp: OKFrontPanel,
         endpoints: SPIControllerEndpoints,
         max_retries: int = 10,
-        max_timeout: int = 500
+        max_timeout: int = 500,
     ) -> None:
         super().__init__(fp)
-        
+
         self._endpoints = endpoints
 
         self._max_retires = max_retries
         self._timeout = float(max_timeout) / max_retries
-        self._timeout /= 1000 # time.sleep uses second as unit
+        self._timeout /= 1000  # time.sleep uses second as unit
 
         # preamble buffer
         self._preamble = []
@@ -93,8 +99,10 @@ class SPIController(BaseSPIController):
 
     def reset(self) -> None:
         """Reset the controller state machine and buffers."""
-        logger.info('reset SPI controller')
-        self._device.SetWireInValue(self._endpoints.RESET, 1 << self._endpoints.RESET_MASK)
+        logger.info("reset SPI controller")
+        self._device.SetWireInValue(
+            self._endpoints.RESET, 1 << self._endpoints.RESET_MASK
+        )
         self._device.UpdateWireIns()
         self._device.SetWireInValue(self._endpoints.RESET, 0x00)
         self._device.UpdateWireIns()
@@ -125,7 +133,7 @@ class SPIController(BaseSPIController):
         return self.receive(length)
 
     def _configure_preamble(self, reg_addr: int, write: bool) -> None:
-        addr = (reg_addr & 0x7f)
+        addr = reg_addr & 0x7F
         preamble_length = 1
 
         if write:
@@ -134,36 +142,36 @@ class SPIController(BaseSPIController):
             preamble_length |= 0x80
 
         self._preamble = [
-            preamble_length,    # preamble length
-            None,               # payload length
-            addr                # preamble, register address
+            preamble_length,  # preamble length
+            None,  # payload length
+            addr,  # preamble, register address
         ]
 
     def transmit(self, data: Iterable[int]) -> None:
         if not data:
             return
-        
+
         length = len(data)
         if length - len(self._preamble) >= self.MAX_BUFFER_LENGTH:
-            raise ValueError('data exceeds buffer size')
-        
+            raise ValueError("data exceeds buffer size")
+
         # reset memory pointer and transfer the buffer
         self._preamble[self.PAYLOAD_LENGTH_INDEX] = length
         buffer = self._preamble + list(data)
         self._reset_memory_pointer()
         self._write_memory(buffer)
-        
+
         # start the transaction
         self._start_transaction()
 
         # wait for the transaction to finish
         for _ in range(self._max_retires):
             if self._is_transaction_complete():
-                logger.debug('.. tx done')
+                logger.debug(".. tx done")
                 break
             time.sleep(self._timeout)
         else:
-            raise TimeoutError('unable to complete transmit')
+            raise TimeoutError("unable to complete transmit")
 
     def receive(self, length: int):
         if length == 0:
@@ -171,38 +179,44 @@ class SPIController(BaseSPIController):
         elif length < 0:
             length = self._max_buffer_length - len(self._preamble) - 1
         elif length - len(self._preamble) >= self.MAX_BUFFER_LENGTH:
-            raise ValueError('request exceeds buffer size')
-            
+            raise ValueError("request exceeds buffer size")
+
         # reset memory pointer and transfer the buffer
         self._preamble[self.PAYLOAD_LENGTH_INDEX] = length
         self._reset_memory_pointer()
         self._write_memory(self._preamble)
-            
+
         # start the transaction
         self._start_transaction()
 
         # wait for the transaction to finish
         for _ in range(self._max_retires):
             if self._is_transaction_complete():
-                logger.debug('.. rx done')
+                logger.debug(".. rx done")
                 self._reset_memory_pointer()
                 data = self._read_memory(length)
                 return tuple(data)
             time.sleep(self._timeout)
         else:
-            raise TimeoutError('unable to complete receive')
+            raise TimeoutError("unable to complete receive")
 
     def _start_transaction(self) -> None:
-        self._device.ActivateTriggerIn(self._endpoints.TRIGGER_IN, self._endpoints.START_MASK)
-        logger.debug('.. start transaction')
+        self._device.ActivateTriggerIn(
+            self._endpoints.TRIGGER_IN, self._endpoints.START_MASK
+        )
+        logger.debug(".. start transaction")
 
     def _is_transaction_complete(self) -> bool:
         self._device.UpdateTriggerOuts()
-        return self._device.IsTriggered(self._endpoints.TRIGGER_OUT, 1 << self._endpoints.DONE_MASK)
+        return self._device.IsTriggered(
+            self._endpoints.TRIGGER_OUT, 1 << self._endpoints.DONE_MASK
+        )
 
     def _reset_memory_pointer(self) -> None:
-        self._device.ActivateTriggerIn(self._endpoints.TRIGGER_IN, self._endpoints.MEM_RESET_MASK)
-        logger.debug('.. mem ptr reset')
+        self._device.ActivateTriggerIn(
+            self._endpoints.TRIGGER_IN, self._endpoints.MEM_RESET_MASK
+        )
+        logger.debug(".. mem ptr reset")
 
     def _write_memory(self, buffer: Iterable[int]) -> None:
         if buffer == self._buffer:
@@ -211,10 +225,12 @@ class SPIController(BaseSPIController):
         self._buffer = buffer
 
         for byte in buffer:
-            self._device.SetWireInValue(self._endpoints.DATA_IN, byte, 0x00ff)
+            self._device.SetWireInValue(self._endpoints.DATA_IN, byte, 0x00FF)
             self._device.UpdateWireIns()
-            self._device.ActivateTriggerIn(self._endpoints.TRIGGER_IN, self._endpoints.MEM_WRITE_MASK)
-            logger.debug(f'.. mem write (0x{byte:02x})')
+            self._device.ActivateTriggerIn(
+                self._endpoints.TRIGGER_IN, self._endpoints.MEM_WRITE_MASK
+            )
+            logger.debug(f".. mem write (0x{byte:02x})")
 
     def _read_memory(self, length: int) -> List[int]:
         data = []
@@ -222,6 +238,8 @@ class SPIController(BaseSPIController):
             self._device.UpdateWireOuts()
             byte = self._device.GetWireOutValue(self._endpoints.DATA_OUT)
             data.append(byte)
-            self._device.ActivateTriggerIn(self._endpoints.TRIGGER_IN, self._endpoints.MEM_READ_MASK)
-            logger.debug(f'.. mem read (0x{byte:02x})')
+            self._device.ActivateTriggerIn(
+                self._endpoints.TRIGGER_IN, self._endpoints.MEM_READ_MASK
+            )
+            logger.debug(f".. mem read (0x{byte:02x})")
         return data

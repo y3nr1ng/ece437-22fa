@@ -36,6 +36,7 @@ def main():
     with fp:
         app = QApplication(sys.argv)
         w = MainWindow(fp)
+        w.show()
         app.exec_()
 
 
