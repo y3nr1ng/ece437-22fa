@@ -40,6 +40,7 @@ class OKFrontPanel:
         n_devices = self._devices.GetCount()
         if n_devices < 1:
             raise RuntimeError("unable to find OK device")
+        logger.info(f'found {n_devices} devices on this system')
         serials = tuple(self._devices.GetSerial(index) for index in range(n_devices))
         return serials
 
