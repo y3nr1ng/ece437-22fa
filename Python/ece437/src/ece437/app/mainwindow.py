@@ -13,8 +13,11 @@ class MainWindow(QMainWindow):
         self.setup_viewer()
 
     def setup_viewer(self)->None:
-        camera = CameraWorker(self._fp, refresh_rate=10)
+        camera = CameraWorker(self._fp, refresh_rate=40)
         viewer = CameraViewerWidget(camera)
         self.setCentralWidget(viewer)
 
         viewer.start()
+
+        # FIXME simple hack to match window with the image
+        self.resize(viewer.width(), viewer.height())

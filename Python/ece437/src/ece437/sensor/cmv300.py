@@ -5,6 +5,7 @@ from ece437.ok import OKFrontPanel
 from ece437.spi import BaseSPIController
 import time
 import numpy as np
+import datetime
 
 __all__ = ["CMV300", "CMV300Endpoints"]
 
@@ -99,6 +100,9 @@ class CMV300:
         self._device.SetWireInValue(self._endpoints.RESET, 0x00)
         self._device.UpdateWireIns()
 
+        # adjust polling interval
+        self._device.SetBTPipePollingInterval(10) # 10 ms
+        self._device.SetTimeout(100) # 100 ms
         # configure bus over spi, need this to use CMOS output
         self._configure_bus()
 
@@ -166,25 +170,39 @@ class CMV300:
         self._buffer = bytearray(self.round_to_blocksize(self.n_bytes))
         return self._buffer
 
-    def get_image(self) -> Any:
+    def get_image_bytes(self) -> ByteString:
+        print(f'cmv300, ln171')
+        t0 = datetime.datetime.now()
+
         buffer = self.get_byte_buffer()
+        print(f'cmv300, ln175')
         self._start_acquire()
+        print(f'cmv300, ln177')
 
         # start pulling image from pipe
         n_bytes_read = self._device.ReadFromBlockPipeOut(
             self._endpoints.PIPE, self.BLOCK_SIZE, buffer
         )
+        print(f'cmv300, ln183')
         if n_bytes_read < 0:
             raise TimeoutError(f"get_image[ReadBTPipe] timeout, retval={n_bytes_read}")
 
         self._wait_acquired()
+        print(f'cmv300, ln187')
 
-        im = np.frombuffer(buffer, dtype=self.dtype, count=self.n_pixels)
-        im = np.reshape(im, self.shape)
+        image_bytes = buffer[:self.n_bytes]
 
         self._wait_sys_ready()
+        print(f'cmv300, ln193')
 
-        return im
+        t1 = datetime.datetime.now()
+        delta = t1 - t0
+        dt = delta.total_seconds() * 1000
+        logger.info(f't_frame={dt:.3f} ms')
+
+        print(f'cmv300, ln200')
+        print()
+        return image_bytes
 
     @classmethod
     def round_to_blocksize(cls, bytes) -> int:

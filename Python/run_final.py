@@ -32,10 +32,10 @@ def setup_logger(level=logging.WARNING):
 
 
 def main():
-    setup_logger(logging.INFO)
+    setup_logger(logging.ERROR)
 
     path = "C:/Users/sean9/ECE437/Final/Final.runs/impl_1/final_top.bit"
-    fp = OKFrontPanel(firmware_path=path) 
+    fp = OKFrontPanel(firmware_path=path)
 
     try:
         fp.open()
@@ -43,10 +43,11 @@ def main():
         app = QApplication(sys.argv)
         w = MainWindow(fp)
         w.show()
-        
-        app.exec()
+
+        app.exec_()
     finally:
         fp.close()
+
 
 if __name__ == "__main__":
     main()
