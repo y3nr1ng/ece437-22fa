@@ -13,8 +13,12 @@ __all__ = ['TrackerWidget']
 logger = logging.getLogger(__name__)
 
 class TrackerWidget(QWidget):
+    # tracking state
     update_tracker_state = Signal(bool)
     update_tracker_position = Signal(float, float)
+
+    # object offset toward center
+    new_object_offset = Signal(float)
 
     def __init__(self, motor: BaseMotorWorker) ->None:
         super().__init__()
@@ -30,7 +34,7 @@ class TrackerWidget(QWidget):
 
         self._frame_index = 0
 
-        self._controller = self._pid(k_p=0.7, k_i=0, k_d=0.8)
+        self._controller = self._pid(k_p=0.2, k_i=0, k_d=0)
         self._controller.send(None)
 
     def start(self) -> None:
@@ -61,10 +65,10 @@ class TrackerWidget(QWidget):
                 _, nx = image.shape
                 dx = pos[0] - nx/2. 
 
-                #t = timestamp.msecsTo(self._t_prev)
-                #x = self._controller.send([t, 0, dx])
+                t = timestamp.msecsTo(self._t_prev)
+                x = self._controller.send([t, dx, 0])
 
-                #self._motor.move(dx)
+                self.new_object_offset.emit(x)
         else:
             if self._prev_pos is not None:
                 self.update_tracker_state.emit(False)

@@ -34,6 +34,8 @@ class BaseMotorWorker(QObject, metaclass=AbstractQObject):
     def move_steps(self, steps: int):
         """Move motor toward specified number of pulses."""
 
+    def on_new_object_offset(self, offset: float) -> None:
+        self.move(offset)
 
 class MotorWorker(BaseMotorWorker):
     def __init__(self, fp: OKFrontPanel, *args, **kwargs) -> None:
@@ -48,6 +50,15 @@ class MotorWorker(BaseMotorWorker):
         self._pmod.close()
 
     def move_steps(self, steps: int) -> None:
-        direction = PMODDirection.Forward if steps > 0 else PMODDirection.Reverse
-        self._pmod.start(abs(steps), direction, block=True)
+        if steps == 0:
+            return
 
+        direction = PMODDirection.Reverse if steps > 0 else PMODDirection.Forward
+        self._pmod.start(abs(steps), direction, block=False) # NOTE in general, don't block
+
+    def on_new_object_offset(self, offset: float) -> None:
+        # ignore signal if motor is still running
+        if not self._pmod._is_motor_done():
+            return
+
+        super().on_new_object_offset(offset)

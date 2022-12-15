@@ -20,7 +20,7 @@ class MainWindow(QMainWindow):
         self.camera = CameraWorker(self._fp, refresh_rate=20)
         self.viewer = CameraViewerWidget(self.camera)
         self.motor = MotorWorker(self._fp)
-        self.motor.calibrate(1)
+        self.motor.calibrate(0.5)
         self.tracker = TrackerWidget(self.motor)
 
         self.setup_viewer()
@@ -40,6 +40,8 @@ class MainWindow(QMainWindow):
         self.tracker.update_tracker_state.connect(self.viewer.on_update_tracker_state)
         self.tracker.update_tracker_position.connect(self.viewer.on_update_tracker_position)
         
+        self.tracker.new_object_offset.connect(self.motor.on_new_object_offset)
+
     def start(self) -> None:
         self.viewer.start()
         self.tracker.start()

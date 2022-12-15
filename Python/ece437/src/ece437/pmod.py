@@ -81,15 +81,17 @@ class PMOD:
         self._start_pwm()
 
         if block:
-            logger.info(f'blocking, is_motor_done?')
-            while True:
-                if self._is_motor_done():
-                    logger.info(f'blocking, DONE')
-                    break
+            logger.info(f'blocking, wait for is_motor_done')
+            self.wait_motor_done()
 
     def _start_pwm(self) -> None:
         self._device.ActivateTriggerIn(self._endpoints.TRIGGER_IN, self._endpoints.START_MASK)
         logger.info('motor start')
+
+    def wait_motor_done(self) -> None:
+        while True:
+            if self._is_motor_done():
+                break
 
     def _is_motor_done(self) -> bool:
         self._device.UpdateTriggerOuts()

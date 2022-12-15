@@ -41,8 +41,8 @@ class CMV300:
         fp: OKFrontPanel,
         spi: BaseSPIController,
         endpoints: CMV300Endpoints,
-        max_retries: int = 1000000, #5,
-        max_timeout: int = 0, #50,
+        max_retries: int = 5,
+        max_timeout: int = 50,
     ) -> None:
         self._fp = fp
         self._device = None
