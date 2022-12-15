@@ -6,7 +6,7 @@ from ece437.spi import BaseSPIController
 import time
 import numpy as np
 
-__all__ = ["CMV300"]
+__all__ = ["CMV300", "CMV300Endpoints"]
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ CMV300Endpoints = namedtuple(
         "PIPE",
         "RESET_MASK",
         "START_MASK",
-        'READY_MASK',
+        "READY_MASK",
         "DONE_MASK",
     ],
 )
@@ -33,7 +33,7 @@ class CMV300:
         TBD
     """
 
-    BLOCK_SIZE : int = 1024 # [bytes] for USB3
+    BLOCK_SIZE: int = 1024  # [bytes] for USB3
 
     def __init__(
         self,
@@ -55,11 +55,9 @@ class CMV300:
         self._shape = (488, 648)
 
     def __enter__(self):
-        self._device = self._fp._device
-
-        self.reset()
+        self.open()
         return self
-    
+
     def __exit__(self, *exc_args):
         self._device = None
 
@@ -67,6 +65,13 @@ class CMV300:
     def shape(self) -> Tuple[int, int]:
         """Get acquired image shape."""
         return self._shape
+
+    def open(self) ->None:
+        self._device = self._fp._device
+        self.reset()
+
+    def close(self) ->None:
+        self._device  =None
 
     def reset(self) -> None:
         """Reset the controller."""
@@ -79,7 +84,7 @@ class CMV300:
         self._device.UpdateWireIns()
 
         # configure bus over spi, need this to use CMOS output
-        self._configure_bus()       
+        self._configure_bus()
 
         self._wait_sys_ready()
 
@@ -89,15 +94,17 @@ class CMV300:
     def get_image(self) -> Any:
         # build buffer
         ny, nx = self._shape
-        #buf = bytearray(self.BLOCK_SIZE * 308)
-        n_bytes = nx * ny # NOTE uint8
+        # buf = bytearray(self.BLOCK_SIZE * 308)
+        n_bytes = nx * ny  # NOTE uint8
         buf = bytearray(self.round_to_blocksize(n_bytes))
         self._start_acquire()
 
         # start pulling image from pipe
-        n_bytes_read = self._device.ReadFromBlockPipeOut(self._endpoints.PIPE, self.BLOCK_SIZE, buf)
+        n_bytes_read = self._device.ReadFromBlockPipeOut(
+            self._endpoints.PIPE, self.BLOCK_SIZE, buf
+        )
         if n_bytes_read < 0:
-            raise TimeoutError(f'get_image[ReadBTPipe] timeout, retval={n_bytes_read}')
+            raise TimeoutError(f"get_image[ReadBTPipe] timeout, retval={n_bytes_read}")
 
         # wait acquisition finish
         for i in range(self._max_retires):
@@ -107,12 +114,14 @@ class CMV300:
             time.sleep(self._timeout)
         else:
             total_timeout = self._timeout * self._max_retires * 1000
-            raise TimeoutError(f"get_image[acquired] timeout after {int(total_timeout)} ms")
+            raise TimeoutError(
+                f"get_image[acquired] timeout after {int(total_timeout)} ms"
+            )
 
-        #buf = buf[:nx * (ny-2)]
+        # buf = buf[:nx * (ny-2)]
         buf = buf[:n_bytes]
         im = np.frombuffer(buf, dtype=np.uint8)
-        #im = np.reshape(im, (ny-2, nx))
+        # im = np.reshape(im, (ny-2, nx))
         im = np.reshape(im, (ny, nx))
 
         self._wait_sys_ready()
