@@ -5,8 +5,8 @@ os.environ["OKFP_ROOT"] = "C:/Users/sean9/Downloads/FrontPanelUSB"
 import PySide2
 
 dirname = os.path.dirname(PySide2.__file__)
-plugin_path = os.path.join(dirname, 'plugins', 'platforms')
-os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = plugin_path
+plugin_path = os.path.join(dirname, "plugins", "platforms")
+os.environ["QT_QPA_PLATFORM_PLUGIN_PATH"] = plugin_path
 
 import logging
 import sys
@@ -15,7 +15,7 @@ from ece437.app import MainWindow
 from PySide2.QtWidgets import QApplication
 
 
-def main():
+def setup_logger(level=logging.WARNING):
     logger = logging.getLogger()
     logger.handlers.clear()
 
@@ -28,17 +28,25 @@ def main():
     logger.addHandler(handler)
 
     # enable all logging level
-    logger.setLevel(logging.INFO)
+    logger.setLevel(level)
+
+
+def main():
+    setup_logger(logging.INFO)
 
     path = "C:/Users/sean9/ECE437/Final/Final.runs/impl_1/final_top.bit"
-    fp = OKFrontPanel(firmware_path=path)
+    fp = OKFrontPanel(firmware_path=path) 
 
-    with fp:
+    try:
+        fp.open()
+
         app = QApplication(sys.argv)
         w = MainWindow(fp)
         w.show()
-        app.exec_()
-
+        
+        app.exec()
+    finally:
+        fp.close()
 
 if __name__ == "__main__":
     main()
