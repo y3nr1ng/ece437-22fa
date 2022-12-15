@@ -48,39 +48,10 @@ module cmv300_cmos #(
     output              o_fifo_prog_full,
     
     // debug
-    input               ila_clk,
     output      [7:0]   xem_led,
     output      [3:0]   board_led
 );
 
-    /*** ila ***/
-    /*
-    ila_0 ila_0_inst (
-        .clk (ila_clk),
-        .probe0 ({ 
-            i_clk, 
-            
-            // cmv controls
-            i_rst,
-            i_start, 
-            o_done,
-
-            // fifo controls
-            write_reset,    // wr_rst
-            i_dval,         // wr_en
-            read_reset,     // rd_rst
-            i_fifo_read_en, // rd_en
-
-            // fifo flags
-            fifo_full, 
-            fifo_empty, 
-            o_fifo_prog_full
-        }),
-        .probe1 ({ i_data, o_data })
-    );
-    */
-    /*** ila ***/
-    
     /*** tick/clock generator ***/
     reg [15:0]  counter = 0;
     

@@ -101,8 +101,8 @@ class CMV300:
         self._device.UpdateWireIns()
 
         # adjust polling interval
-        #self._device.SetBTPipePollingInterval(10) # NOTE polling period for TRIG
-        self._device.SetTimeout(50) # 100 ms
+        self._device.SetTimeout(50) # 50 ms
+
         # configure bus over spi, need this to use CMOS output
         self._configure_bus()
 

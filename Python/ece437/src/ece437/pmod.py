@@ -38,44 +38,51 @@ class PMOD:
         self,
         fp: OKFrontPanel,
         endpoints: PMODType5Endpoints
-    ):
-        self._device = fp._device
+    ):  
+        self._fp = fp
+        self._device = None
 
         self._endpoints = endpoints
 
+        self._last_ctrl_value = 0
+
     def __enter__(self):
-        self.reset()
+        self.open()
         return self
 
     def __exit__(self, *exc_args):
-        pass
+        self.close()
+
+    def open(self):
+        self._device = self._fp._device
+        self.reset()
+
+    def close(self) -> None:
+        self._device = None
 
     def reset(self):
-        logger.debug('rest pmod')
+        logger.debug('reset pmod')
         self._device.SetWireInValue(self._endpoints.RESET, 1 << self._endpoints.RESET_MASK)
         self._device.UpdateWireIns()
         self._device.SetWireInValue(self._endpoints.RESET, 0x00)
         self._device.UpdateWireIns()
 
     def start(self, n_pulses: int, dir: PMODDirection) -> None:
+        if not self._is_motor_done():
+            return
+
         value = (n_pulses & 0x00FFFFFF) | dir
-        logger.info(f'control_reg={value:>032b}')
-        self._device.SetWireInValue(self._endpoints.CONTROL, value)
-        self._device.UpdateWireIns()
+        if value != self._last_ctrl_value:
+            logger.info(f'update pwm control, reg_val={value:>032b}')
+            self._device.SetWireInValue(self._endpoints.CONTROL, value)
+            self._device.UpdateWireIns()
+            self._last_ctrl_value = value
 
         self._start_pwm()
 
-        for _ in range(5):
-            if self._is_motor_done():
-                logger.debug('.. [TO] done')
-                return None
-            time.sleep(1)
-        else:
-            raise TimeoutError('pmod timeout')
-
     def _start_pwm(self) -> None:
         self._device.ActivateTriggerIn(self._endpoints.TRIGGER_IN, self._endpoints.START_MASK)
-        logger.debug('.. [TI] start')
+        logger.debug('pwm start')
 
     def _is_motor_done(self) -> bool:
         self._device.UpdateTriggerOuts()

@@ -4,6 +4,12 @@ from .viewer import CameraViewerWidget
 from .camera import CameraWorker
 from ece437.ok import OKFrontPanel
 from .tracker import TrackerWidget
+from .motor import MotorWorker
+import logging
+
+__all__ = ['MainWindow']
+
+logger = logging.getLogger(__name__)
 
 class MainWindow(QMainWindow):
     def __init__(self, fp: OKFrontPanel, *args, **kwargs):
@@ -13,7 +19,9 @@ class MainWindow(QMainWindow):
 
         self.camera = CameraWorker(self._fp, refresh_rate=20)
         self.viewer = CameraViewerWidget(self.camera)
-        self.tracker = TrackerWidget()
+        self.motor = MotorWorker(self._fp)
+        self.motor.calibrate(1)
+        self.tracker = TrackerWidget(self.motor)
 
         self.setup_viewer()
         self.setup_tracker()
@@ -34,4 +42,10 @@ class MainWindow(QMainWindow):
         
     def start(self) -> None:
         self.viewer.start()
-        #self.tracker.start()
+        self.tracker.start()
+
+    def closeEvent(self, event) -> None:
+        self.tracker.stop()
+        self.viewer.stop()
+
+        super().closeEvent(event)

@@ -1,8 +1,12 @@
-from PySide2.QtCore import Signal, Slot, QDateTime
+from PySide2.QtCore import Signal, Slot, QDateTime, QThread
 from PySide2.QtWidgets import QWidget
 import logging
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter
+from .motor import BaseMotorWorker
+from skimage.transform import hough_circle, hough_circle_peaks
+from skimage.feature import canny
+from datetime import datetime
 
 __all__ = ['TrackerWidget']
 
@@ -12,27 +16,117 @@ class TrackerWidget(QWidget):
     update_tracker_state = Signal(bool)
     update_tracker_position = Signal(float, float)
 
-    def __init__(self):
+    def __init__(self, motor: BaseMotorWorker) ->None:
         super().__init__()
 
-        self._prev_com = None
+        self._motor = motor
+
+        self._thread = QThread()
+        self._motor.moveToThread(self._thread)
+        self._thread.started.connect(self._motor.run)
+        self._thread.finished.connect(self._motor.finished)
+
+        self._prev_pos = None
+
+        self._frame_index = 0
+
+        self._controller = self._pid(k_p=0.8, k_i=0, k_d=0.8)
+        self._controller.send(None)
+
+    def start(self) -> None:
+        self._thread.start()
+
+    def stop(self) -> None:
+        self._thread.quit()
+        self._thread.wait()
+        self._motor.finished()
 
     @Slot(QDateTime, np.ndarray)
     def on_acquired_new_frame(self, timestamp: QDateTime, image: np.ndarray) -> None:
-        com = self._calcaulte_center_of_mass(image)
-        if com is not None:
-            if self._prev_com is None:
+        self._frame_index += 1
+        if self._frame_index % 2 != 0: # reduce update rate
+            return
+
+        pos = self._find_object_center(image)
+        if pos is not None:
+            if self._prev_pos is None:
                 self.update_tracker_state.emit(True)
-            logger.debug(f"com (x={com[0]:.2f}, y={com[1]:.2f})")
-            self.update_tracker_position.emit(com[0], com[1])
+
+            logger.debug(f"object @ (x={pos[0]:.2f}, y={pos[1]:.2f})")
+            self.update_tracker_position.emit(pos[0], pos[1])
+
+            # move till object is close to screen center
+            if self._prev_pos is not None:
+                # we have record to predict
+                _, nx = image.shape
+                dx = pos[0] - nx/2. 
+
+                t = timestamp.msecsTo(self._t_prev)
+                sv = self._prev_pos[0] - nx/2.
+                x = self._controller.send([t, 0, dx])
+                self._motor.move(x)
         else:
-            if self._prev_com is not None:
+            if self._prev_pos is not None:
                 self.update_tracker_state.emit(False)
 
-        self._prev_com = com
+        self._prev_pos = pos
+        self._t_prev = timestamp
+
+    def _pid(self, k_p: float = 1, k_i :float=0, k_d: float=0, MV_bar = 0):
+        # initialized stored data
+        e_prev = 0
+        t_prev = 0   
+        I = 0
+
+        # initial control
+        MV = MV_bar
+
+        while True:
+            # yield x, wait for new t, pv, sp
+            t, pv, sp = yield MV
+
+            e = sp - pv
+
+            P = k_p * e
+            I = I + k_i * e * (t - t_prev)
+            D = k_d * (e - e_prev) / (t - t_prev)
+
+            MV = MV_bar + P + I + D
+
+            # update stored data
+            e_prev = e
+            t_prev = t
 
     @classmethod
-    def _calcaulte_center_of_mass(
+    def _find_object_center_2(
+        cls,
+        image: np.ndarray
+    ):
+        t0 = datetime.now()
+
+        # detect edges
+        edges = canny(image, sigma=7)
+        
+        hough_radii = np.arange(50, 300+1, 10)
+        hough_res = hough_circle(edges, hough_radii)
+
+        accums, cx, cy, _ = hough_circle_peaks(hough_res, hough_radii,
+                                                    total_num_peaks=1)
+        print(cx)
+    
+        t1 = datetime.now()
+
+        delta = t1 - t0
+        dt = delta.total_seconds() * 1000
+        print(f't_find_obj={dt:.3f} ms')
+
+        if len(accums) == 0:
+            return None
+        else:
+            return [cx[0], cy[0]]
+
+    @classmethod
+    def _find_object_center(
         cls,
         image: np.ndarray,
         sigma: float = 7,
@@ -47,11 +141,16 @@ class TrackerWidget(QWidget):
         dv = image - m
         mad = consistency * np.median(np.abs(dv))
 
+        if mad < 0.001:
+            return None
+
         # mask non-outliers
         weights = image.copy()
         weights[(dv / mad) <= threshold] = 0
-        if np.sum(weights > 0) < fill_ratio * image.size:
+        if np.sum(weights) < 1:
             return None
+        #if np.sum(weights > 0) < fill_ratio * image.size:
+        #    return None
 
         ny, nx = image.shape
         xv, yv = np.meshgrid(range(nx), range(ny), indexing="xy")

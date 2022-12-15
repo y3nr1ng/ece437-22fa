@@ -58,6 +58,7 @@
 //----------------------------------------------------------------------------
 // _clk_80M__80.00000______0.000______50.0______185.331____196.976
 // clk_120M__120.00000______0.000______50.0______171.432____196.976
+// _clk_10M__10.00000______0.000______50.0______278.710____196.976
 //
 //----------------------------------------------------------------------------
 // Input Clock   Freq (MHz)    Input Jitter (UI)
@@ -72,18 +73,21 @@ module ref_clk_pll_clk_wiz
   // Clock out ports
   output        clk_80M,
   output        clk_120M,
+  output        clk_10M,
   // Status and control signals
   input         reset,
   output        locked,
-  input         sys_clk
+  input         clk_in1_p,
+  input         clk_in1_n
  );
   // Input buffering
   //------------------------------------
-wire sys_clk_ref_clk_pll;
+wire clk_in1_ref_clk_pll;
 wire clk_in2_ref_clk_pll;
-  IBUF clkin1_ibufg
-   (.O (sys_clk_ref_clk_pll),
-    .I (sys_clk));
+  IBUFDS clkin1_ibufgds
+   (.O  (clk_in1_ref_clk_pll),
+    .I  (clk_in1_p),
+    .IB (clk_in1_n));
 
 
 
@@ -97,7 +101,7 @@ wire clk_in2_ref_clk_pll;
 
   wire        clk_80M_ref_clk_pll;
   wire        clk_120M_ref_clk_pll;
-  wire        clk_out3_ref_clk_pll;
+  wire        clk_10M_ref_clk_pll;
   wire        clk_out4_ref_clk_pll;
   wire        clk_out5_ref_clk_pll;
   wire        clk_out6_ref_clk_pll;
@@ -110,7 +114,6 @@ wire clk_in2_ref_clk_pll;
   wire        clkfbout_ref_clk_pll;
   wire        clkfbout_buf_ref_clk_pll;
   wire        clkfboutb_unused;
-   wire clkout2_unused;
    wire clkout3_unused;
    wire clkout4_unused;
   wire        clkout5_unused;
@@ -132,6 +135,9 @@ wire clk_in2_ref_clk_pll;
     .CLKOUT1_DIVIDE       (8),
     .CLKOUT1_PHASE        (0.000),
     .CLKOUT1_DUTY_CYCLE   (0.500),
+    .CLKOUT2_DIVIDE       (96),
+    .CLKOUT2_PHASE        (0.000),
+    .CLKOUT2_DUTY_CYCLE   (0.500),
     .CLKIN1_PERIOD        (5.000))
   plle2_adv_inst
     // Output clocks
@@ -139,13 +145,13 @@ wire clk_in2_ref_clk_pll;
     .CLKFBOUT            (clkfbout_ref_clk_pll),
     .CLKOUT0             (clk_80M_ref_clk_pll),
     .CLKOUT1             (clk_120M_ref_clk_pll),
-    .CLKOUT2             (clkout2_unused),
+    .CLKOUT2             (clk_10M_ref_clk_pll),
     .CLKOUT3             (clkout3_unused),
     .CLKOUT4             (clkout4_unused),
     .CLKOUT5             (clkout5_unused),
      // Input clock control
     .CLKFBIN             (clkfbout_buf_ref_clk_pll),
-    .CLKIN1              (sys_clk_ref_clk_pll),
+    .CLKIN1              (clk_in1_ref_clk_pll),
     .CLKIN2              (1'b0),
      // Tied to always select the primary input clock
     .CLKINSEL            (1'b1),
@@ -186,6 +192,10 @@ wire clk_in2_ref_clk_pll;
   BUFG clkout2_buf
    (.O   (clk_120M),
     .I   (clk_120M_ref_clk_pll));
+
+  BUFG clkout3_buf
+   (.O   (clk_10M),
+    .I   (clk_10M_ref_clk_pll));
 
 
 

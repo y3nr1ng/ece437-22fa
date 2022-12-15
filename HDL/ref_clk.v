@@ -21,30 +21,29 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 module ref_clk (
-    // on board differential clock source
+    // on board differential clock source, 200 MHz
     input       sys_clkn,
     input       sys_clkp,
     
     input       reset,
-    
-    // system output, 200 MHz
-    output      sys_clk,
 
     // references
+    output      clk_10M,
     output      clk_80M,
     output      clk_120M
 );
 
-    IBUFGDS osc_clk(
-        .O (sys_clk),
-        .I (sys_clkp),
-        .IB (sys_clkn)
-    );  
-    
     ref_clk_pll ref_clk_pll_inst (
+        // clock-in
+        .clk_in1_p (sys_clkp),
+        .clk_in1_n (sys_clkn),
+        
+        // status
         .reset (reset),
         .locked (), // whether pll is stable
-        .sys_clk (sys_clk), 
+        
+        // clock-out
+        .clk_10M (clk_10M),
         .clk_80M (clk_80M),
         .clk_120M (clk_120M)
     );

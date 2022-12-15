@@ -50,22 +50,24 @@ module final_top(
     input           CMV300_Line_valid,
     input           CMV300_Data_valid,
 
+    // pmod_1
+    output          PMOD_A1, // en
+    output          PMOD_A2, // dir
+
     // led debug
     output [3:0]    s_LED,
     output [7:0]    led
 );
     
     /*** referenc clock ***/
-    wire sys_clk;
-    wire ref_clk_80M;
+    wire ref_clk_10M, ref_clk_80M;
     wire ila_clk;
     
     ref_clk ref_clk_inst (
-        .sys_clkn (sys_clkn),
         .sys_clkp (sys_clkp),
-
-        .sys_clk (sys_clk),
-
+        .sys_clkn (sys_clkn),
+        
+        .clk_10M (ref_clk_10M),
         .clk_80M (ref_clk_80M),
         .clk_120M (ila_clk)
     );
@@ -89,24 +91,32 @@ module final_top(
     
     /*** ok endpoints ***/
     wire [31:0] wi_00_wire;
+    wire [31:0] wi_02_wire;
     wire [31:0] ti_40_wire;
     wire [31:0] ti_41_wire;
+    wire [31:0] ti_42_wire;
     wire [31:0] to_60_wire;
     wire [31:0] to_61_wire;
+    wire [31:0] to_62_wire;
     
     wire [31:0] po_a0_wire_datain;
     assign po_a0_wire_datain = { cmv300_fifo_data[7:0], cmv300_fifo_data[15:8], cmv300_fifo_data[23:16], cmv300_fifo_data[31:24] };
 
-    localparam  endpoint_count = 4;
+    localparam  endpoint_count = 5;
     wire [endpoint_count*65-1:0] okEHx;  
     okWireOR # (.N(endpoint_count)) wireOR (okEH, okEHx);
     
     // input, 0x00
     //  0: spi reset
     //  1: cmv300 reset
+    //  2: pmod reset
     okWireIn     wi_00 (.okHE (okHE),                                                       .ep_addr (8'h00), .ep_dataout (wi_00_wire)); 
     // input, 0x01, spi input data
     okWireIn     wi_01 (.okHE (okHE),                                                       .ep_addr (8'h01), .ep_dataout (i_mem_data_0)); 
+    // input, 0x02, pmod1
+    //  [31]:    dir
+    //  [23..0]: pulse
+    okWireIn     wi_02 (.okHE (okHE),                                                       .ep_addr (8'h02), .ep_dataout (wi_02_wire)); 
     // output, 0x20, i2c_0 output data
     okWireOut    wo_20 (.okHE (okHE), .okEH (okEHx[ 0*65 +: 65 ]),                          .ep_addr (8'h20), .ep_datain (o_mem_data_0));
     // trigger in, 0x40
@@ -118,6 +128,9 @@ module final_top(
     // trigger in, 0x41
     //  0: cmv start
     okTriggerIn  ti_41 (.okHE (okHE),                               .ep_clk(cmv300_clk),    .ep_addr (8'h41), .ep_trigger (ti_41_wire));
+    // trigger in, 0x42
+    //  0: pmod1 start
+    okTriggerIn  ti_42 (.okHE (okHE),                               .ep_clk(ref_clk_10M),   .ep_addr (8'h42), .ep_trigger (ti_42_wire));
     // trigger out, 0x60
     //  0: spi done
     okTriggerOut to_60 (.okHE (okHE), .okEH (okEHx[ 1*65 +: 65 ]),  .ep_clk(ref_clk_80M),   .ep_addr (8'h60), .ep_trigger (to_60_wire));
@@ -125,8 +138,11 @@ module final_top(
     //  0: cmv ready
     //  1: cmv done
     okTriggerOut to_61 (.okHE (okHE), .okEH (okEHx[ 2*65 +: 65 ]),  .ep_clk(cmv300_clk),    .ep_addr (8'h61), .ep_trigger (to_61_wire));
+    // trigger out, 0x62
+    //  0: pmod1 free
+    okTriggerOut to_62 (.okHE (okHE), .okEH (okEHx[ 3*65 +: 65 ]),  .ep_clk(ref_clk_10M),   .ep_addr (8'h62), .ep_trigger (to_62_wire));
     // pipe
-    okBTPipeOut po_a0  (.okHE (okHE), .okEH (okEHx[ 3*65 +: 65 ]),                          .ep_addr (8'ha0), .ep_datain (po_a0_wire_datain), 
+    okBTPipeOut po_a0  (.okHE (okHE), .okEH (okEHx[ 4*65 +: 65 ]),                          .ep_addr (8'ha0), .ep_datain (po_a0_wire_datain), 
                                                                                                               .ep_read(cmv300_fifo_read_en), 
                                                                                                               .ep_blockstrobe(),  
                                                                                                               .ep_ready(cmv300_fifo_prog_full)
@@ -218,10 +234,50 @@ module final_top(
         .o_data (cmv300_fifo_data),
         .o_fifo_prog_full (cmv300_fifo_prog_full),
         
-        .ila_clk (ila_clk),
         .xem_led (led),
         .board_led (s_LED)
     );
     /*** cmv300 data ***/
+
+    /*** motor ***/
+    wire reset_async_2;
+    wire reset_ref_clk_2;
+    
+    assign reset_async_2 = wi_00_wire[2];
+    
+    sync_reset sync_reset_inst_2 (
+        .i_clk (ref_clk_10M),
+        .i_async_reset (reset_async_2),
+        .o_sync_reset (reset_ref_clk_2)
+    );
+    
+    wire        i_dir_wire;
+    wire [23:0] i_pulses_wire;
+   
+    assign i_dir_wire = wi_02_wire[31];
+    assign i_pulses_wire = wi_02_wire[23:0];
+
+    wire o_pmod1_busy;
+    assign to_62_wire[0] = !o_pmod1_busy;
+
+    drv8833 #(
+        .PULSE_CLK_DIVIDER (10000) // 1 kHz
+    ) pmod_1 (
+        .i_clk (ref_clk_10M), 
+    
+        // control
+        .i_rst (reset_ref_clk_2),
+        .i_start (ti_42_wire[0]),
+    
+        .i_dir (i_dir_wire),
+        .i_pulses (i_pulses_wire),
+    
+        .o_busy (o_pmod1_busy),
+    
+        // wirings
+        .o_pmod_dir (PMOD_A2),
+        .o_pmod_en (PMOD_A1)
+    );
+    /*** motor ***/
     
 endmodule

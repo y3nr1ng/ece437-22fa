@@ -23,7 +23,7 @@
 module drv8833 #(
     parameter PULSE_CLK_DIVIDER = 16'd250 
 )(
-    input               i_clk_100k, 
+    input               i_clk, 
     
     // control
     input               i_rst,
@@ -43,12 +43,12 @@ module drv8833 #(
     reg [15:0]  pmod_en_counter = 0;
     reg         pmod_en = 0;
     
-    always @(posedge i_clk_100k) begin
+    always @(posedge i_clk) begin
         if (i_rst) begin
             pmod_en_counter <= 0;
         end
         else begin
-            if (pmod_en_counter == PULSE_CLK_DIVIDER) begin
+            if (pmod_en_counter >= PULSE_CLK_DIVIDER/2) begin
                 pmod_en_counter <= 0;
                 pmod_en <= ~pmod_en;
             end
@@ -62,21 +62,19 @@ module drv8833 #(
     assign o_pmod_en = (pmod_oe & !i_rst) & pmod_en;
     
     wire pmod_en_tick;
-    assign pmod_en_tick = (pmod_en_counter == PULSE_CLK_DIVIDER) & o_pmod_en;
+    assign pmod_en_tick = (pmod_en_counter == PULSE_CLK_DIVIDER/2) & o_pmod_en;
     /*** en pulse generator ***/
     
     /*** en counter ***/
     reg         clear = 0;
     reg [23:0]  counter = 0;
     
-    always @(posedge i_clk_100k) begin
+    always @(posedge i_clk) begin
         if (clear) begin
             counter <= 0;
         end
-        else begin
-            if (pmod_en_tick) begin
-                counter <= counter + 1'b1;
-            end
+        else if (pmod_en_tick) begin
+            counter <= counter + 1'b1;
         end
     end
     /*** en counter ***/
@@ -94,7 +92,7 @@ module drv8833 #(
     
     reg [23:0] target_counter = 0;
     
-    always @(posedge i_clk_100k) begin
+    always @(posedge i_clk) begin
         if (i_rst) begin 
             state <= S_IDLE;
          

@@ -1,7 +1,7 @@
 -- Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
 -- --------------------------------------------------------------------------------
 -- Tool Version: Vivado v.2022.2 (win64) Build 3671981 Fri Oct 14 05:00:03 MDT 2022
--- Date        : Mon Dec 12 17:51:16 2022
+-- Date        : Thu Dec 15 06:29:34 2022
 -- Host        : SCKY-ASUS running 64-bit major release  (build 9200)
 -- Command     : write_vhdl -force -mode funcsim
 --               c:/Users/sean9/ECE437/Final/Final.srcs/sources_1/ip/ref_clk_pll/ref_clk_pll_sim_netlist.vhdl
@@ -18,19 +18,21 @@ entity ref_clk_pll_clk_wiz is
   port (
     clk_80M : out STD_LOGIC;
     clk_120M : out STD_LOGIC;
+    clk_10M : out STD_LOGIC;
     reset : in STD_LOGIC;
     locked : out STD_LOGIC;
-    sys_clk : in STD_LOGIC
+    clk_in1_p : in STD_LOGIC;
+    clk_in1_n : in STD_LOGIC
   );
 end ref_clk_pll_clk_wiz;
 
 architecture STRUCTURE of ref_clk_pll_clk_wiz is
+  signal clk_10M_ref_clk_pll : STD_LOGIC;
   signal clk_120M_ref_clk_pll : STD_LOGIC;
   signal clk_80M_ref_clk_pll : STD_LOGIC;
+  signal clk_in1_ref_clk_pll : STD_LOGIC;
   signal clkfbout_buf_ref_clk_pll : STD_LOGIC;
   signal clkfbout_ref_clk_pll : STD_LOGIC;
-  signal sys_clk_ref_clk_pll : STD_LOGIC;
-  signal NLW_plle2_adv_inst_CLKOUT2_UNCONNECTED : STD_LOGIC;
   signal NLW_plle2_adv_inst_CLKOUT3_UNCONNECTED : STD_LOGIC;
   signal NLW_plle2_adv_inst_CLKOUT4_UNCONNECTED : STD_LOGIC;
   signal NLW_plle2_adv_inst_CLKOUT5_UNCONNECTED : STD_LOGIC;
@@ -38,15 +40,16 @@ architecture STRUCTURE of ref_clk_pll_clk_wiz is
   signal NLW_plle2_adv_inst_DO_UNCONNECTED : STD_LOGIC_VECTOR ( 15 downto 0 );
   attribute BOX_TYPE : string;
   attribute BOX_TYPE of clkf_buf : label is "PRIMITIVE";
-  attribute BOX_TYPE of clkin1_ibufg : label is "PRIMITIVE";
+  attribute BOX_TYPE of clkin1_ibufgds : label is "PRIMITIVE";
   attribute CAPACITANCE : string;
-  attribute CAPACITANCE of clkin1_ibufg : label is "DONT_CARE";
+  attribute CAPACITANCE of clkin1_ibufgds : label is "DONT_CARE";
   attribute IBUF_DELAY_VALUE : string;
-  attribute IBUF_DELAY_VALUE of clkin1_ibufg : label is "0";
+  attribute IBUF_DELAY_VALUE of clkin1_ibufgds : label is "0";
   attribute IFD_DELAY_VALUE : string;
-  attribute IFD_DELAY_VALUE of clkin1_ibufg : label is "AUTO";
+  attribute IFD_DELAY_VALUE of clkin1_ibufgds : label is "AUTO";
   attribute BOX_TYPE of clkout1_buf : label is "PRIMITIVE";
   attribute BOX_TYPE of clkout2_buf : label is "PRIMITIVE";
+  attribute BOX_TYPE of clkout3_buf : label is "PRIMITIVE";
   attribute BOX_TYPE of plle2_adv_inst : label is "PRIMITIVE";
 begin
 clkf_buf: unisim.vcomponents.BUFG
@@ -54,14 +57,16 @@ clkf_buf: unisim.vcomponents.BUFG
       I => clkfbout_ref_clk_pll,
       O => clkfbout_buf_ref_clk_pll
     );
-clkin1_ibufg: unisim.vcomponents.IBUF
+clkin1_ibufgds: unisim.vcomponents.IBUFDS
     generic map(
-      CCIO_EN => "TRUE",
+      CCIO_EN_M => "TRUE",
+      CCIO_EN_S => "TRUE",
       IOSTANDARD => "DEFAULT"
     )
         port map (
-      I => sys_clk,
-      O => sys_clk_ref_clk_pll
+      I => clk_in1_p,
+      IB => clk_in1_n,
+      O => clk_in1_ref_clk_pll
     );
 clkout1_buf: unisim.vcomponents.BUFG
      port map (
@@ -72,6 +77,11 @@ clkout2_buf: unisim.vcomponents.BUFG
      port map (
       I => clk_120M_ref_clk_pll,
       O => clk_120M
+    );
+clkout3_buf: unisim.vcomponents.BUFG
+     port map (
+      I => clk_10M_ref_clk_pll,
+      O => clk_10M
     );
 plle2_adv_inst: unisim.vcomponents.PLLE2_ADV
     generic map(
@@ -86,7 +96,7 @@ plle2_adv_inst: unisim.vcomponents.PLLE2_ADV
       CLKOUT1_DIVIDE => 8,
       CLKOUT1_DUTY_CYCLE => 0.500000,
       CLKOUT1_PHASE => 0.000000,
-      CLKOUT2_DIVIDE => 1,
+      CLKOUT2_DIVIDE => 96,
       CLKOUT2_DUTY_CYCLE => 0.500000,
       CLKOUT2_PHASE => 0.000000,
       CLKOUT3_DIVIDE => 1,
@@ -110,12 +120,12 @@ plle2_adv_inst: unisim.vcomponents.PLLE2_ADV
         port map (
       CLKFBIN => clkfbout_buf_ref_clk_pll,
       CLKFBOUT => clkfbout_ref_clk_pll,
-      CLKIN1 => sys_clk_ref_clk_pll,
+      CLKIN1 => clk_in1_ref_clk_pll,
       CLKIN2 => '0',
       CLKINSEL => '1',
       CLKOUT0 => clk_80M_ref_clk_pll,
       CLKOUT1 => clk_120M_ref_clk_pll,
-      CLKOUT2 => NLW_plle2_adv_inst_CLKOUT2_UNCONNECTED,
+      CLKOUT2 => clk_10M_ref_clk_pll,
       CLKOUT3 => NLW_plle2_adv_inst_CLKOUT3_UNCONNECTED,
       CLKOUT4 => NLW_plle2_adv_inst_CLKOUT4_UNCONNECTED,
       CLKOUT5 => NLW_plle2_adv_inst_CLKOUT5_UNCONNECTED,
@@ -139,9 +149,11 @@ entity ref_clk_pll is
   port (
     clk_80M : out STD_LOGIC;
     clk_120M : out STD_LOGIC;
+    clk_10M : out STD_LOGIC;
     reset : in STD_LOGIC;
     locked : out STD_LOGIC;
-    sys_clk : in STD_LOGIC
+    clk_in1_p : in STD_LOGIC;
+    clk_in1_n : in STD_LOGIC
   );
   attribute NotValidForBitStream : boolean;
   attribute NotValidForBitStream of ref_clk_pll : entity is true;
@@ -151,10 +163,12 @@ architecture STRUCTURE of ref_clk_pll is
 begin
 inst: entity work.ref_clk_pll_clk_wiz
      port map (
+      clk_10M => clk_10M,
       clk_120M => clk_120M,
       clk_80M => clk_80M,
+      clk_in1_n => clk_in1_n,
+      clk_in1_p => clk_in1_p,
       locked => locked,
-      reset => reset,
-      sys_clk => sys_clk
+      reset => reset
     );
 end STRUCTURE;
