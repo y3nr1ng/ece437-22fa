@@ -1,5 +1,5 @@
 import logging
-from typing import Tuple, Any
+from typing import Tuple, Any, ByteString
 from collections import namedtuple
 from ece437.ok import OKFrontPanel
 from ece437.spi import BaseSPIController
@@ -132,8 +132,34 @@ class CMV300:
 
         # reset buffer
         self._buffer = None
+
+    def set_exposure(self, t_exp: float) -> None:
+        """
+        Set exposure time in milliseconds.
         
-    def get_byte_buffer(self) -> bytearray:
+        Args:
+            t_exp (float): exposure time in ms
+        """
+        t_exp = int(t_exp * 1e6)
+        for i in range(3):
+            self._spi.write_to(42+i, t_exp & 0x0F)
+            t_exp >>= 8
+
+    def get_exposure(self) -> float:
+        """
+        Get exposure time in milliseconds.
+        
+        Returns:
+            (float): exposure time in ms
+        """
+        t_exp = 0
+        for reg_addr in (44, 43, 42):
+            reg_val, = self._spi.read_from(reg_addr, 1)
+            t_exp <<= 8
+            t_exp += reg_val
+        return float(t_exp) / 1e6
+
+    def get_byte_buffer(self) -> ByteString:
         if self._buffer is not None:
             return self._buffer
 
