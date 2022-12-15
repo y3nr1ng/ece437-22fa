@@ -10,6 +10,8 @@ logger = logging.getLogger(__name__)
 
 class OKFrontPanel:
     def __init__(self, serial="", firmware_path=None):
+        self._devices = ok.okCFrontPanelDevices()
+
         self._device = ok.okCFrontPanel()
         self._serial = serial
         self._firmware_path = firmware_path
@@ -35,20 +37,29 @@ class OKFrontPanel:
 
     def enumerate(self) -> Tuple[str]:
         """Return serial number of available devices."""
-        devices = ok.okCFrontPanelDevices()
-        n_devices = devices.GetCount()
+        n_devices = self._devices.GetCount()
         if n_devices < 1:
             raise RuntimeError("unable to find OK device")
-        serials = tuple(devices.GetSerial(index) for index in range(n_devices))
+        serials = tuple(self._devices.GetSerial(index) for index in range(n_devices))
         return serials
 
     def open(self):
         if self._device is None:
             raise RuntimeError("please wrap the class with context statement")
-        
-        self.enumerate()
-        status = self._device.OpenBySerial(self._serial)
-        self.parse_error_code(status)
+
+        serials = self.enumerate()
+        if self._serial:
+            try:
+                serials.index(self._serial)
+            except ValueError:
+                raise ValueError(f"no device with serial '{self._serial}'")
+        else:
+            self._serial = serials[0]
+            if len(serials) > 1:
+                logger.warning(
+                    f"found multiple devices, use the first one, serial='{self._serial}'"
+                )
+        self._device = self._devices.Open(self._serial)
 
         if self._firmware_path is not None:
             if not os.path.exists(self._firmware_path):
@@ -67,17 +78,27 @@ class OKFrontPanel:
         self._device_info = None
 
     @staticmethod
-    def parse_error_code(code, message: Optional[str]=None):
+    def parse_error_code(code, message: Optional[str] = None):
         lut = {
             0: (None, "success"),
             -1: (RuntimeError, "non-descriptive failure"),
             -2: (TimeoutError, "transfer timed out"),
-            # TODO need to add reset of the errors
+            -3: (RuntimeError, "configuration failure due to DONE not high"),
+            -4: (RuntimeError, "transfer error"),
+            -5: (RuntimeError, "communication error"),
+            -6: (ValueError, "invalid bistream"),
+            -7: (ValueError, "file could not be opened"),
+            -8: (RuntimeError, "device is not open or is no longer available"),
+            -9: (RuntimeError, "invalid FP endpoint"),
+            -10: (ValueError, "invalid block size"),
+            -15: (NotImplementedError, "requested action is not supported"),
+            -19: (ValueError, "invalid reset profile"),
+            -20: (ValueError, "invalid parameter")
         }
         klass, desc = lut.get(code, (RuntimeError, f"unknown error code ({code})"))
         if klass:
             if message is None:
                 message = desc
             else:
-                message = f'{desc}, {message}'
+                message = f"{desc}, {message}"
             raise klass(message)
