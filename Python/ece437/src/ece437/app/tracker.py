@@ -102,34 +102,6 @@ class TrackerWidget(QWidget):
             t_prev = t
 
     @classmethod
-    def _find_object_center_2(
-        cls,
-        image: np.ndarray
-    ):
-        t0 = datetime.now()
-
-        # detect edges
-        edges = canny(image, sigma=7)
-        
-        hough_radii = np.arange(50, 300+1, 10)
-        hough_res = hough_circle(edges, hough_radii)
-
-        accums, cx, cy, _ = hough_circle_peaks(hough_res, hough_radii,
-                                                    total_num_peaks=1)
-        print(cx)
-    
-        t1 = datetime.now()
-
-        delta = t1 - t0
-        dt = delta.total_seconds() * 1000
-        print(f't_find_obj={dt:.3f} ms')
-
-        if len(accums) == 0:
-            return None
-        else:
-            return [cx[0], cy[0]]
-
-    @classmethod
     def _find_object_center(
         cls,
         image: np.ndarray,
