@@ -1,4 +1,4 @@
-from PySide2.QtCore import QThread, QDateTime, Slot, Signal
+from PySide2.QtCore import QThread, QDateTime, Slot, Signal, Qt
 from PySide2.QtWidgets import QWidget, QLabel, QGridLayout
 from PySide2.QtGui import QTransform
 import logging
@@ -45,8 +45,6 @@ class CameraViewerWidget(QWidget):
 
         # camera and its threads
         self._camera = camera
-        self._camera.acquired_new_frame.connect(self.on_acquired_new_frame)
-        self._camera.timeout.connect(self.on_timeout)
 
         self._thread = QThread()
         self._camera.moveToThread(self._thread)
@@ -54,7 +52,7 @@ class CameraViewerWidget(QWidget):
         self._thread.finished.connect(self._camera.finished)
 
     def start(self) -> None:
-        self._thread.start()
+        self._thread.start(priority=QThread.TimeCriticalPriority)
 
     def stop(self) -> None:
         self._thread.quit()
@@ -62,13 +60,13 @@ class CameraViewerWidget(QWidget):
 
     @Slot()
     def on_timeout(self):
-        logger.error("camera timeout, attempt to reset")
         self.stop()
+        logger.error("camera timeout, attempt to reset")
         self.start()
 
-    @Slot(QDateTime, np.ndarray)
-    def on_acquired_new_frame(self, timestamp: QDateTime, image: np.ndarray) -> None:
-        logger.info(f"new frame, {timestamp}")
+    @Slot(np.ndarray)
+    def on_acquired_new_frame(self, image: np.ndarray) -> None:
+        logger.debug('SET_NEW_FRAME')
         self._image.setImage(image, autoLevels=True)
 
     @Slot(bool)
@@ -86,6 +84,7 @@ class CameraViewerWidget(QWidget):
 
     @Slot(float, float)
     def on_update_tracker_position(self, x: float, y: float) -> None:
+        logger.debug(f'update_tracker_position, (x={x:.2f}, y={y:.2f})')
         self._vline.setPos(x)
         self._hline.setPos(y)
 

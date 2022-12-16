@@ -33,79 +33,45 @@ class TrackerWidget(QWidget):
         self._prev_pos = None
 
         self._frame_index = 0
-
-        self._controller = self._pid(k_p=0.2, k_i=0, k_d=0)
-        self._controller.send(None)
+        self._drop_frame_ratio = 4
 
     def start(self) -> None:
-        self._thread.start()
+        self._thread.start(priority=QThread.TimeCriticalPriority)
 
     def stop(self) -> None:
         self._thread.quit()
         self._thread.wait()
-        self._motor.finished()
 
-    @Slot(QDateTime, np.ndarray)
-    def on_acquired_new_frame(self, timestamp: QDateTime, image: np.ndarray) -> None:
+    @Slot(np.ndarray)
+    def on_acquired_new_frame(self, image: np.ndarray) -> None:
+        # NOTE drop frame to match motor update rate, 5 Hz
         #self._frame_index += 1
-        #if self._frame_index % 5 != 0: # reduce update rate
+        #if self._frame_index % self._drop_frame_ratio != 0:
         #    return
 
         pos = self._find_object_center(image)
-        if pos is not None:
-            if self._prev_pos is None:
-                self.update_tracker_state.emit(True)
 
-            logger.debug(f"object @ (x={pos[0]:.2f}, y={pos[1]:.2f})")
-            self.update_tracker_position.emit(pos[0], pos[1])
-
-            # move till object is close to screen center
-            if self._prev_pos is not None:
-                # we have record to predict
-                _, nx = image.shape
-                dx = pos[0] - nx/2. 
-
-                t = timestamp.msecsTo(self._t_prev)
-                x = self._controller.send([t, dx, 0])
-
-                self.new_object_offset.emit(x)
-        else:
-            if self._prev_pos is not None:
-                self.update_tracker_state.emit(False)
-
+        # show/hide cursor
+        if (pos is None) ^ (self._prev_pos is None):
+            self.update_tracker_state.emit(pos is not None)
         self._prev_pos = pos
-        self._t_prev = timestamp
 
-    def _pid(self, k_p: float = 1, k_i :float=0, k_d: float=0, MV_bar = 0):
-        # initialized stored data
-        e_prev = 0
-        t_prev = 0   
-        I = 0
+        if pos is None:
+            return
 
-        # initial control
-        MV = MV_bar
+        logger.debug(f"object @ (x={pos[0]:.2f}, y={pos[1]:.2f})")
+        self.update_tracker_position.emit(pos[0], pos[1])
 
-        while True:
-            # yield x, wait for new t, pv, sp
-            t, pv, sp = yield MV
-
-            e = sp - pv
-
-            P = k_p * e
-            I = I + k_i * e * (t - t_prev)
-            D = k_d * (e - e_prev) / (t - t_prev)
-
-            MV = MV_bar + P + I + D
-
-            # update stored data
-            e_prev = e
-            t_prev = t
+        _, nx = image.shape
+        dx = pos[0] - nx/2. 
+        #self.new_object_offset.emit(dx)
+        self._motor._pv = dx # will this work?
 
     @classmethod
     def _find_object_center(
         cls,
         image: np.ndarray,
-        sigma: float = 7,
+        sigma: float = 3,
         consistency: float = 1.4826,
         threshold: float = 5,
         fill_ratio: float = 0.05,
@@ -124,6 +90,7 @@ class TrackerWidget(QWidget):
         weights = image.copy()
         weights[(dv / mad) <= threshold] = 0
         if np.sum(weights) < 1:
+            logger.warning('invalid intensity weight for centroid')
             return None
         elif np.sum(weights > 0) < fill_ratio * image.size:
             return None

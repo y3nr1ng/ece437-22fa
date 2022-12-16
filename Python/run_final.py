@@ -20,7 +20,7 @@ def setup_logger(level=logging.WARNING):
     logger.handlers.clear()
 
     # format
-    formatter = logging.Formatter("[%(asctime)s] [%(levelname)s] %(message)s")
+    formatter = logging.Formatter("[%(asctime)s] %(thread)d [%(levelname)s] %(message)s")
 
     # add stream handler
     handler = logging.StreamHandler(sys.stdout)
@@ -32,7 +32,7 @@ def setup_logger(level=logging.WARNING):
 
 
 def main():
-    setup_logger(logging.DEBUG)
+    setup_logger(logging.INFO)
 
     path = "C:/Users/sean9/ECE437/Final/Final.runs/impl_1/final_top.bit"
     fp = OKFrontPanel(firmware_path=path)

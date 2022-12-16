@@ -135,19 +135,21 @@ class CMV300:
         # reset buffer
         self._buffer = None
 
-    def set_exposure(self, t_exp: float) -> None:
+    def set_exposure(self, t_exp: float, clk_per: float=25e-6) -> None:
         """
         Set exposure time in milliseconds.
         
         Args:
             t_exp (float): exposure time in ms
         """
-        t_exp = int(t_exp * 1e6)
+        t_exp /= 325 * clk_per
+        t_exp = round(t_exp)
+        logger.debug(f'set_exposure, exp_time={t_exp}')
         for i in range(3):
-            self._spi.write_to(42+i, t_exp & 0x0F)
+            self._spi.write_to(42+i, [t_exp & 0x0F])
             t_exp >>= 8
 
-    def get_exposure(self) -> float:
+    def get_exposure(self, clk_per: float=25e-6) -> float:
         """
         Get exposure time in milliseconds.
         
@@ -159,7 +161,8 @@ class CMV300:
             reg_val, = self._spi.read_from(reg_addr, 1)
             t_exp <<= 8
             t_exp += reg_val
-        return float(t_exp) / 1e6
+        logger.debug(f'get_exposure, exp_time={t_exp}')
+        return t_exp * 325 * clk_per
 
     def get_byte_buffer(self) -> ByteString:
         if self._buffer is not None:
@@ -175,7 +178,7 @@ class CMV300:
         self._start_acquire()
 
         #self._wait_sys_ready()
-
+        
         # start pulling image from pipe
         n_bytes_read = self._device.ReadFromBlockPipeOut(
             self._endpoints.PIPE, self.BLOCK_SIZE, buffer
@@ -183,7 +186,7 @@ class CMV300:
         if n_bytes_read < 0:
             OKFrontPanel.parse_error_code(n_bytes_read, "pipe timeout")
         self._wait_acquired()
-
+        
         return np.frombuffer(buffer, dtype=self.dtype, count=self.n_pixels).reshape(self.shape)
         
     @classmethod

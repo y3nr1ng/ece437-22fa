@@ -15,7 +15,6 @@ __all__ = ["BaseCameraWorker", "CameraWorker"]
 logger = logging.getLogger(__name__)
 
 
-
 class BaseCameraWorker(QObject, metaclass=AbstractQObject):
     """
     Base class for camera.
@@ -23,7 +22,8 @@ class BaseCameraWorker(QObject, metaclass=AbstractQObject):
     Args:
         refresh_rate (float, optional): frame refresh rate in Hz
     """
-    acquired_new_frame = Signal(QDateTime, np.ndarray)
+
+    acquired_new_frame = Signal(np.ndarray)
     timeout = Signal()
 
     def __init__(self, refresh_rate: float = 25):
@@ -57,7 +57,7 @@ class BaseCameraWorker(QObject, metaclass=AbstractQObject):
 
         self._timer.start()
 
-    def finished(self)-> None:
+    def finished(self) -> None:
         self._timer.stop()
 
     @abstractmethod
@@ -73,19 +73,21 @@ class CameraWorker(BaseCameraWorker):
         self._spi = SPIController(fp, CMV300_SPI_ENDPOINTS)
         self._data = CMV300(fp, self._spi, CMV300_DATA_ENDPOINTS)
 
-        ny, nx = self._data.shape
-        self._image = QImage(nx, ny, QImage.Format_Grayscale8)
+        self._n_timeout_redo = 0
 
     @property
     def current_frame(self):
         return self._frame_buffer
 
     def run(self) -> None:
+        self._n_timeout_redo = 0 # start fresh
+
         self._spi.open()
         self._data.open()
 
+        self._data.set_exposure(10)
         t_exp = self._data.get_exposure()
-        print(f'exposure time {t_exp} ms')
+        logger.info(f"exposure time {t_exp} ms")
         super().run()
 
     def finished(self) -> None:
@@ -98,13 +100,30 @@ class CameraWorker(BaseCameraWorker):
             t0 = datetime.now()
             array = self._data.get_image_array()
             t1 = datetime.now()
+
+            self._n_timeout_redo = 0 # success read, no timeouts
         except TimeoutError as err:
             logger.exception(err)
-            self.timeout.emit()
+            self._n_timeout_redo += 1
+
+            if self._n_timeout_redo == 1:
+                # 1) re-capture
+                logger.warning('timeout redo 1, re-capture')
+                self.grab_frame()
+            elif self._n_timeout_redo == 2:
+                # 2) reset camera
+                logger.warning('timeout redo 2, reset camera')
+                self._data.reset()
+            else:
+                # 3) top-level
+                logger.warning('timeout redo 3, complete reset')
+                self.timeout.emit()
+
+            # NOTE do not continue below, they are for correct operations
             return
 
         delta = t1 - t0
         dt = delta.total_seconds() * 1000
-        logger.info(f't_frame={dt:.3f} ms')
+        logger.info(f"t_frame={dt:.3f} ms")
 
-        self.acquired_new_frame.emit(QDateTime.currentDateTime(), array) 
+        self.acquired_new_frame.emit(array)

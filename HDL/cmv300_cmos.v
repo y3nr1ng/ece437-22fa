@@ -143,6 +143,7 @@ module cmv300_cmos #(
     reg start;
 
     reg [7:0]   delay_counter;
+    reg [31:0]  pixel_counter;
 
     always @(posedge o_clk_in) begin
         /*** frame operation signals ***/
@@ -273,6 +274,8 @@ module cmv300_cmos #(
 
                 // wait a couple more ticks, pad till next block size
                 S_WAIT_PIXELS_1: begin
+                    board_led_state <= 6; // DEBUG
+                    
                     if (delay_counter >= 192) begin
                         fifo_wr_en_bypass <= 0;
                         o_done <= 1;

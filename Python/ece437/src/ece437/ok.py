@@ -2,17 +2,70 @@ import logging
 import os
 from typing import Tuple
 from typing import Optional
+import threading
 
 import ok
 
 logger = logging.getLogger(__name__)
 
+class okCFrontPanelThreadSafe:
+    def __init__(self, fp: ok.okCFrontPanel):
+        self._fp = fp
+        self.lock = threading.Lock()
+    
+    def Close(self, *args, **kwargs):
+        with self.lock:
+            return self._fp.Close(*args, **kwargs)
+
+    def ConfigureFPGA(self, *args, **kwargs):
+        with self.lock:
+            return self._fp.ConfigureFPGA(*args, **kwargs)
+
+    def GetDeviceInfo(self, *args, **kwargs):
+        with self.lock:
+            return self._fp.GetDeviceInfo(*args, **kwargs)
+    
+    def SetWireInValue(self, *args, **kwargs):
+        with self.lock:
+            return self._fp.SetWireInValue(*args, **kwargs)
+
+    def UpdateWireIns(self, *args, **kwargs):
+        with self.lock:
+            return self._fp.UpdateWireIns(*args, **kwargs)
+
+    def GetWireOutValue(self, *args, **kwargs):
+        with self.lock:
+            return self._fp.GetWireOutValue(*args, **kwargs)
+
+    def UpdateWireOuts(self, *args, **kwargs):
+        with self.lock:
+            return self._fp.UpdateWireOuts(*args, **kwargs)
+
+    def ActivateTriggerIn(self, *args, **kwargs):
+        with self.lock:
+            return self._fp.ActivateTriggerIn(*args, **kwargs)
+
+    def SetTimeout(self, *args, **kwargs):
+        with self.lock:
+            return self._fp.SetTimeout(*args, **kwargs)
+
+    def UpdateTriggerOuts(self, *args, **kwargs):
+        with self.lock:
+            return self._fp.UpdateTriggerOuts(*args, **kwargs)
+
+    def IsTriggered(self, *args, **kwargs):
+        with self.lock:
+            return self._fp.IsTriggered(*args, **kwargs)
+
+    def ReadFromBlockPipeOut(self, *args, **kwargs):
+        with self.lock:
+            return self._fp.ReadFromBlockPipeOut(*args, **kwargs)
 
 class OKFrontPanel:
     def __init__(self, serial="", firmware_path=None):
         self._devices = ok.okCFrontPanelDevices()
 
-        self._device = ok.okCFrontPanel()
+        self._device = None
         self._serial = serial
         self._firmware_path = firmware_path
 
@@ -45,9 +98,6 @@ class OKFrontPanel:
         return serials
 
     def open(self):
-        if self._device is None:
-            raise RuntimeError("please wrap the class with context statement")
-
         serials = self.enumerate()
         if self._serial:
             try:
@@ -60,8 +110,10 @@ class OKFrontPanel:
                 logger.warning(
                     f"found multiple devices, use the first one, serial='{self._serial}'"
                 )
-        self._device = self._devices.Open(self._serial)
-
+        #self._device = self._devices.Open(self._serial)
+        device = self._devices.Open(self._serial)
+        self._device = okCFrontPanelThreadSafe(device)
+        
         if self._firmware_path is not None:
             if not os.path.exists(self._firmware_path):
                 logger.error(f"firmware file does not exist")

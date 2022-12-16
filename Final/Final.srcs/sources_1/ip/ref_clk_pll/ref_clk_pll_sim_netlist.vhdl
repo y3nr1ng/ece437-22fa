@@ -1,7 +1,7 @@
 -- Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
 -- --------------------------------------------------------------------------------
 -- Tool Version: Vivado v.2022.2 (win64) Build 3671981 Fri Oct 14 05:00:03 MDT 2022
--- Date        : Thu Dec 15 06:29:34 2022
+-- Date        : Fri Dec 16 04:17:37 2022
 -- Host        : SCKY-ASUS running 64-bit major release  (build 9200)
 -- Command     : write_vhdl -force -mode funcsim
 --               c:/Users/sean9/ECE437/Final/Final.srcs/sources_1/ip/ref_clk_pll/ref_clk_pll_sim_netlist.vhdl
